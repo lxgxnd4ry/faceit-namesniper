@@ -1,0 +1,35 @@
+﻿# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller / Build artifacts
+build/
+dist/
+release/
+*.spec
+
+# User local configuration & secrets (contains Faceit API keys)
+config.json
+
+# Local SQLite databases & scan caches
+*.db
+*.sqlite
+*.sqlite3
+
+# Exports
+exports/*.txt
+exports/*.csv
+!exports/.gitkeep
+
+# Environments
+venv/
+.venv/
+env/
+.env
+
+# IDE & OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

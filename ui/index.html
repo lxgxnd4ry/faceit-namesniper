@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Namesniper</title>
+  <style>
+    :root {
+      --bg-window: #141414;
+      --bg-sidebar: #121212;
+      --bg-groupbox: #151515;
+      --bg-inset: #0d0e11;
+      --border-outer: #000000;
+      --border-inner: #282828;
+      --border-highlight: #353538;
+      --text-main: #cccccc;
+      --text-dim: #6e727a;
+      --text-bright: #ffffff;
+      --menu-color: #a822f5;
+      --menu-color-glow: rgba(168, 34, 245, 0.35);
+      --dd-bg: hsl(278, 16%, 13%);
+      --dd-header-bg: hsl(278, 15%, 11.5%);
+      --dd-border: hsl(278, 12%, 17%);
+      --dd-item-hover: hsl(278, 12%, 22%);
+      --dd-item-active: hsl(278, 14%, 17%);
+      --available: #00e676;
+      --claimable: #ffb300;
+      --taken: #666666;
+      --error: #ff3355;
+      --font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      font-size: 11px;
+      -webkit-font-smoothing: antialiased;
+      border-radius: 0 !important;
+    }
+
+    body {
+      background-color: var(--bg-window);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Window Shell */
+    .skeet-window {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--border-outer);
+      box-shadow: inset 0 0 0 1px var(--border-inner);
+      background-color: var(--bg-window);
+    }
+
+    /* Custom Menu Title Bar */
+    .skeet-titlebar {
+      height: 22px;
+      background-color: #141414;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px 0 10px;
+      user-select: none;
+      flex-shrink: 0;
+      border-bottom: 1px solid #000000;
+      cursor: grab;
+      -webkit-app-region: drag;
+    }
+
+    .skeet-title-text {
+      font-size: 10px;
+      color: #666666;
+      font-family: var(--font-family);
+      letter-spacing: 0.5px;
+      flex: 1;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      cursor: grab;
+      -webkit-app-region: drag;
+    }
+
+    .skeet-window-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      -webkit-app-region: no-drag;
+      cursor: default;
+    }
+
+    .win-btn {
+      width: 22px;
+      height: 18px;
+      background: transparent;
+      border: none;
+      color: #777777;
+      font-size: 11px;
+      font-family: Tahoma, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.1s;
+      -webkit-app-region: no-drag;
+    }
+
+    .win-btn:hover {
+      background-color: #222222;
+      color: #ffffff;
+    }
+
+    .win-btn.close:hover {
+      background-color: #bb1528;
+      color: #ffffff;
+    }
+
+    /* Rainbow Accent Line */
+    .skeet-rainbow-bar {
+      height: 3px;
+      width: 100%;
+      background: linear-gradient(90deg, #3c7bf6 0%, #a445f7 32%, #f65287 64%, #f6d152 100%);
+      flex-shrink: 0;
+      -webkit-app-region: no-drag;
+    }
+
+    .skeet-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+      -webkit-app-region: no-drag;
+      cursor: default;
+    }
+
+    /* Left Icon Sidebar */
+    .skeet-sidebar {
+      width: 60px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-outer);
+      box-shadow: inset -1px 0 0 0 var(--border-inner);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: 6px 0;
+    }
+
+    .skeet-tab-btn {
+      width: 100%;
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-left: none;
+      border-right: none;
+      background: transparent;
+      color: var(--text-dim);
+      transition: all 0.1s ease;
+      position: relative;
+    }
+
+    .skeet-tab-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+      transition: fill 0.15s ease;
+    }
+
+    .skeet-tab-btn:hover {
+      color: #aaaaaa;
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .skeet-tab-btn.active {
+      background-color: #191919;
+      color: var(--text-bright);
+      border-top: 1px solid var(--border-outer);
+      border-bottom: 1px solid var(--border-outer);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+    }
+
+    .skeet-tab-btn.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: var(--menu-color);
+      box-shadow: 0 0 5px var(--menu-color-glow);
+    }
+
+    .skeet-tab-label {
+      font-size: 9px;
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    /* Content Area */
+    .skeet-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 10px 14px 14px 14px;
+      min-height: 0;
+    }
+
+    .tab-view {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      padding-top: 4px;
+    }
+
+    .tab-view.active {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 310px 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .grid-equal {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .col-flex {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    /* Groupbox with Clearance for Titles */
+    .skeet-groupbox {
+      position: relative;
+      border: 1px solid var(--border-inner);
+      box-shadow: 0 0 0 1px var(--border-outer);
+      background-color: var(--bg-groupbox);
+      padding: 14px 12px 12px 12px;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .skeet-groupbox.flex-1 {
+      flex: 1;
+    }
+
+    .skeet-groupbox-title {
+      position: absolute;
+      top: -7px;
+      left: 12px;
+      background-color: var(--bg-groupbox);
+      padding: 0 5px;
+      color: #d8d8d8;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      user-select: none;
+      line-height: 11px;
+    }
+
+    /* Control Rows */
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      color: var(--text-main);
+      font-size: 11px;
+    }
+
+    /* Checkbox with Lighter Gray Unchecked State */
+    .skeet-checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      color: var(--text-main);
+      user-select: none;
+      font-size: 11px;
+    }
+
+    .skeet-checkbox-label:hover {
+      color: var(--text-bright);
+    }
+
+    .skeet-checkbox-label input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 11px;
+      height: 11px;
+      background-color: #727784; /* Much lighter gray matching reference StatTrak */
+      border: 1px solid #101114;
+      box-shadow: 0 0 0 1px #2a2c33;
+      cursor: pointer;
+      position: relative;
+      margin: 0;
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    .skeet-checkbox-label input[type="checkbox"]:hover {
+      background-color: #838997;
+    }
+
+    .skeet-checkbox-label input[type="checkbox"]:checked {
+      background-color: var(--menu-color);
+      box-shadow: 0 0 0 1px #101114, 0 0 4px var(--menu-color-glow);
+    }
+
+    /* Custom Dropdown Component */
+    .skeet-dropdown {
+      position: relative;
+      width: 100%;
+      user-select: none;
+    }
+
+    .skeet-dropdown-header {
+      height: 22px;
+      background: var(--dd-header-bg);
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px var(--dd-border);
+      color: #ffffff;
+      font-size: 11px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.1s, box-shadow 0.1s;
+    }
+
+    .skeet-dropdown-header:hover {
+      box-shadow: 0 0 0 1px var(--menu-color);
+      color: #ffffff;
+    }
+
+    .skeet-dropdown.open .skeet-dropdown-header {
+      box-shadow: 0 0 0 1px var(--menu-color);
+    }
+
+    .skeet-dropdown-arrow {
+      font-size: 9px;
+      color: #8a8e98;
+      margin-left: 6px;
+    }
+
+    .skeet-dropdown.open .skeet-dropdown-arrow {
+      color: var(--menu-color);
+    }
+
+    .skeet-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: var(--dd-bg);
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px var(--dd-border), 0 6px 14px rgba(0, 0, 0, 0.9);
+      z-index: 100;
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 1px;
+      transition: background 0.1s;
+    }
+
+    .skeet-dropdown.open .skeet-dropdown-menu {
+      display: block;
+    }
+
+    .skeet-dropdown-item {
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #ffffff;
+      background-color: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: color 0.05s ease, background-color 0.05s ease;
+    }
+
+    .skeet-dropdown-item:hover {
+      background-color: var(--dd-item-hover);
+      color: var(--menu-color);
+      text-shadow: 0 0 4px var(--menu-color-glow);
+    }
+
+    .skeet-dropdown-item.active {
+      background-color: var(--dd-item-active);
+      color: var(--menu-color);
+      font-weight: 600;
+      text-shadow: 0 0 4px var(--menu-color-glow);
+    }
+
+    /* Text Input & Textarea */
+    .skeet-input {
+      background-color: #17181c;
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px #2e3036;
+      color: #ffffff;
+      font-size: 11px;
+      height: 22px;
+      padding: 2px 8px;
+      outline: none;
+      width: 100%;
+    }
+
+    .skeet-input:focus {
+      box-shadow: 0 0 0 1px var(--menu-color);
+    }
+
+    .skeet-textarea {
+      background-color: var(--bg-inset);
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px var(--border-inner);
+      color: #e0e0e0;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      padding: 6px 8px;
+      outline: none;
+      resize: none;
+      width: 100%;
+      height: 75px;
+    }
+
+    .skeet-textarea:focus {
+      box-shadow: 0 0 0 1px var(--menu-color);
+    }
+
+    /* Push Buttons */
+    .skeet-btn {
+      height: 23px;
+      padding: 0 10px;
+      background: linear-gradient(180deg, #2b2b2b 0%, #1e1e1e 100%);
+      border: 1px solid #3c3c3c;
+      box-shadow: 0 1px 0 var(--border-outer);
+      color: #c0c0c0;
+      font-size: 11px;
+      font-weight: 600;
+      text-shadow: 0 1px 1px #000000;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      user-select: none;
+      transition: all 0.08s ease;
+    }
+
+    .skeet-btn:hover {
+      background: linear-gradient(180deg, #353535 0%, #252525 100%);
+      color: #ffffff;
+      border-color: #484848;
+    }
+
+    .skeet-btn:active {
+      background: linear-gradient(180deg, #181818 0%, #222222 100%);
+      box-shadow: inset 0 1px 2px #000000;
+      transform: translateY(1px);
+    }
+
+    .skeet-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .skeet-btn.danger {
+      border-color: #55181e;
+    }
+    .skeet-btn.danger:hover {
+      background: linear-gradient(180deg, #441419 0%, #290d11 100%);
+      color: #ff6b81;
+    }
+
+    /* Sliders with Text ON Track (Matching Reference Image) */
+    .skeet-slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 7px;
+    }
+
+    .skeet-slider-header {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-main);
+      font-size: 11px;
+    }
+
+    .skeet-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .skeet-stepper-btn {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: #7b808c;
+      font-size: 11px;
+      font-family: Tahoma, monospace, sans-serif;
+      font-weight: 400;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      flex-shrink: 0;
+      padding: 0 2px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .skeet-stepper-btn:hover {
+      color: #ffffff;
+    }
+
+    .skeet-stepper-btn:active {
+      color: var(--menu-color);
+    }
+
+    .skeet-slider-track-wrap {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      height: 14px;
+    }
+
+    .skeet-slider {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0.40) 100%),
+        linear-gradient(180deg, #2b2b2b 0%, #1e1e1e 100%);
+      border: 1px solid #3c3c3c;
+      box-shadow: 0 1px 0 var(--border-outer);
+      outline: none;
+      cursor: pointer;
+      margin: 0;
+      padding: 0;
+      display: block;
+      transition: border-color 0.08s;
+    }
+
+    .skeet-slider:hover {
+      border-color: #484848;
+    }
+
+    .skeet-slider::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 6px;
+      height: 6px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .skeet-slider-text-on-track {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      font-size: 10px;
+      font-family: Tahoma, 'Segoe UI', sans-serif;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 1px 1px #000000, 0 0 2px #000000, 0 0 3px #000000;
+      line-height: 1;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      z-index: 2;
+    }
+
+    /* Stats Readout Bar */
+    .skeet-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      background-color: var(--bg-inset);
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px var(--border-inner);
+      padding: 5px 8px;
+    }
+
+    .stat-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-title {
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .stat-value {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 1px;
+    }
+
+    .stat-value.green { color: var(--available); }
+    .stat-value.gold { color: var(--claimable); }
+    .stat-value.dim { color: #888888; }
+    .stat-value.cyan { color: #00d2ff; }
+
+    /* Progress Bar */
+    .skeet-progress-bar-container {
+      height: 3px;
+      background-color: var(--bg-inset);
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px #222222;
+      overflow: hidden;
+    }
+
+    .skeet-progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--menu-color), #00e5ff);
+      transition: width 0.15s ease;
+    }
+
+    /* Inset Box */
+    .skeet-inset-box {
+      background-color: var(--bg-inset);
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px var(--border-inner);
+      overflow: auto;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      padding: 5px 8px;
+      background-color: #17181c;
+      border-bottom: 1px solid var(--border-outer);
+      box-shadow: 0 1px 0 #26272c;
+      color: #7b7f88;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      user-select: none;
+    }
+
+    th.sortable {
+      cursor: pointer;
+    }
+
+    th.sortable:hover {
+      color: #ffffff;
+      background-color: #1e2026;
+    }
+
+    th.sortable.active {
+      color: var(--menu-color);
+    }
+
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #141518;
+      font-size: 11px;
+    }
+
+    tr:nth-child(even) td {
+      background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Nickname Links */
+    .nickname-link {
+      color: var(--available);
+      font-weight: 700;
+      font-size: 11px;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(0, 230, 118, 0.35);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .nickname-link:hover {
+      color: #69f0ae;
+      border-bottom-style: solid;
+      text-shadow: 0 0 5px rgba(0, 230, 118, 0.5);
+    }
+
+    .nickname-link.claimable {
+      color: var(--claimable);
+      border-bottom-color: rgba(255, 179, 0, 0.35);
+    }
+
+    .nickname-link.claimable:hover {
+      color: #ffe082;
+      text-shadow: 0 0 5px rgba(255, 179, 0, 0.5);
+    }
+
+    .nickname-link.taken {
+      color: #c0c4cc;
+      border-bottom-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .nickname-link.taken:hover {
+      color: var(--menu-color);
+      border-bottom-color: var(--menu-color);
+      text-shadow: 0 0 5px var(--menu-color-glow);
+    }
+
+    .ext-icon {
+      font-size: 9px;
+      opacity: 0.6;
+    }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      padding: 1px 4px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-radius: 2px;
+    }
+
+    .tag-available {
+      background-color: rgba(0, 230, 118, 0.1);
+      color: var(--available);
+      border: 1px solid rgba(0, 230, 118, 0.25);
+    }
+
+    .tag-claimable {
+      background-color: rgba(255, 179, 0, 0.1);
+      color: var(--claimable);
+      border: 1px solid rgba(255, 179, 0, 0.25);
+    }
+
+    .tag-taken {
+      background-color: rgba(100, 100, 100, 0.1);
+      color: #777777;
+      border: 1px solid #303030;
+    }
+
+    /* Activity Feed */
+    .feed-content {
+      padding: 6px 8px;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .feed-line {
+      line-height: 1.35;
+      word-break: break-all;
+    }
+    .feed-line.green { color: var(--available); }
+    .feed-line.gold { color: var(--claimable); }
+    .feed-line.red { color: var(--error); }
+    .feed-line.dim { color: #666666; }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #101114;
+      border-left: 1px solid var(--border-outer);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #28292e;
+      border: 1px solid var(--border-outer);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #383a42;
+    }
+
+    /* Swatches */
+    .color-swatch-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .color-swatch {
+      width: 16px;
+      height: 13px;
+      border: 1px solid var(--border-outer);
+      box-shadow: 0 0 0 1px #333333;
+      cursor: pointer;
+    }
+    .color-swatch.active {
+      box-shadow: 0 0 0 1px #ffffff, 0 0 5px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Window Resizers (Drag Corners & Edges) */
+    .skeet-resizer {
+      position: absolute;
+      z-index: 99999;
+      user-select: none;
+      -webkit-app-region: no-drag;
+    }
+
+    .skeet-resizer.resizer-sw {
+      bottom: 0;
+      left: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nesw-resize;
+    }
+
+    .skeet-resizer.resizer-se {
+      bottom: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+    }
+
+    .skeet-resizer.resizer-se::after {
+      content: "";
+      position: absolute;
+      right: 2px;
+      bottom: 2px;
+      width: 7px;
+      height: 7px;
+      background: linear-gradient(135deg, transparent 0%, transparent 40%, #555555 40%, #555555 50%, transparent 50%, transparent 70%, #555555 70%, #555555 80%, transparent 80%);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .skeet-resizer.resizer-se:hover::after {
+      opacity: 1;
+      background: linear-gradient(135deg, transparent 0%, transparent 40%, var(--menu-color) 40%, var(--menu-color) 50%, transparent 50%, transparent 70%, var(--menu-color) 70%, var(--menu-color) 80%, transparent 80%);
+    }
+
+    .skeet-resizer.resizer-s {
+      bottom: 0;
+      left: 16px;
+      right: 16px;
+      height: 6px;
+      cursor: ns-resize;
+    }
+
+    .skeet-resizer.resizer-w {
+      top: 30px;
+      bottom: 16px;
+      left: 0;
+      width: 6px;
+      cursor: ew-resize;
+    }
+
+    .skeet-resizer.resizer-e {
+      top: 30px;
+      bottom: 16px;
+      right: 0;
+      width: 6px;
+      cursor: ew-resize;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="skeet-window">
+    <!-- Custom Frameless Titlebar -->
+    <div class="skeet-titlebar pywebview-drag-region">
+      <div class="skeet-title-text pywebview-drag-region">namesniper</div>
+      <div class="skeet-window-controls" onmousedown="event.stopPropagation()">
+        <button class="win-btn" onclick="minimizeWindow()" title="Minimize">_</button>
+        <button class="win-btn close" onclick="closeWindow()" title="Close">&#10005;</button>
+      </div>
+    </div>
+
+    <!-- Rainbow Accent Line -->
+    <div class="skeet-rainbow-bar"></div>
+
+    <div class="skeet-body">
+      <!-- Left Sidebar -->
+      <div class="skeet-sidebar">
+        <button class="skeet-tab-btn active" onclick="switchTab('dashboard')" id="btn-nav-dashboard" title="Checker">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7.44-7.93H7v-2H5.56c.44-4.08 3.49-7.44 7.44-7.93V5h2v-1.93c3.95.49 7 3.85 7.44 7.93H20v2h1.44c-.44 4.08-3.49 7.44-7.44 7.93V19h-2v1.93zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+          </svg>
+          <span class="skeet-tab-label">Check</span>
+        </button>
+
+        <button class="skeet-tab-btn" onclick="switchTab('wordlists')" id="btn-nav-wordlists" title="Generator">
+          <svg viewBox="0 0 24 24">
+            <path d="M7 2v2h1v14H7v2h10v-2h-1V4h1V2H7zm3 4h4v2h-4V6zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z"/>
+          </svg>
+          <span class="skeet-tab-label">Words</span>
+        </button>
+
+        <button class="skeet-tab-btn" onclick="switchTab('database')" id="btn-nav-database" title="Database">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3C7.58 3 4 4.79 4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7c0-2.21-3.58-4-8-4zm6 14c0 .88-2.69 2-6 2s-6-1.12-6-2v-2.18c1.55.74 3.73 1.18 6 1.18s4.45-.44 6-1.18V17zm0-4.5c0 .88-2.69 2-6 2s-6-1.12-6-2V10.3c1.55.75 3.73 1.2 6 1.2s4.45-.45 6-1.2v2.2zm0-4.5c0 .88-2.69 2-6 2s-6-1.12-6-2V5.82c1.55.74 3.73 1.18 6 1.18s4.45-.44 6-1.18V8z"/>
+          </svg>
+          <span class="skeet-tab-label">DB</span>
+        </button>
+
+        <button class="skeet-tab-btn" onclick="switchTab('settings')" id="btn-nav-settings" title="Settings">
+          <svg viewBox="0 0 24 24">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+          </svg>
+          <span class="skeet-tab-label">Config</span>
+        </button>
+      </div>
+
+      <!-- Main Contents -->
+      <div class="skeet-content">
+        
+        <!-- TAB 1: CHECKER -->
+        <div class="tab-view active" id="tab-dashboard">
+          
+          <!-- Stats Readout -->
+          <div class="skeet-stats-grid">
+            <div class="stat-cell">
+              <span class="stat-title">Total</span>
+              <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Checked</span>
+              <span class="stat-value" id="stat-checked">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Available</span>
+              <span class="stat-value green" id="stat-available">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Claimable</span>
+              <span class="stat-value gold" id="stat-claimable">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Taken</span>
+              <span class="stat-value dim" id="stat-taken">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Speed</span>
+              <span class="stat-value cyan" id="stat-speed">0/s</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="skeet-progress-bar-container">
+            <div class="skeet-progress-bar-fill" id="checker-progress-bar"></div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Controls Column -->
+            <div class="col-flex">
+              <div class="skeet-groupbox">
+                <span class="skeet-groupbox-title">Controls</span>
+
+                <div style="margin-bottom: 9px;">
+                  <span class="control-label" style="display: block; margin-bottom: 4px;">Source</span>
+                  
+                  <!-- Custom Skeet Dropdown: Source -->
+                  <div class="skeet-dropdown" id="dd-source">
+                    <div class="skeet-dropdown-header" onclick="toggleDropdown('dd-source')">
+                      <span id="dd-source-label">OG words (611)</span>
+                      <span class="skeet-dropdown-arrow">&#9662;</span>
+                    </div>
+                    <div class="skeet-dropdown-menu">
+                      <div class="skeet-dropdown-item active" data-val="og_cool_words.txt" onclick="selectDropdown('dd-source', 'og_cool_words.txt', 'OG words (611)')">OG words (611)</div>
+                      <div class="skeet-dropdown-item" data-val="short_3l.txt" onclick="selectDropdown('dd-source', 'short_3l.txt', 'Short 3L (1054)')">Short 3L (1054)</div>
+                      <div class="skeet-dropdown-item" data-val="short_4l.txt" onclick="selectDropdown('dd-source', 'short_4l.txt', 'Short 4L (1440)')">Short 4L (1440)</div>
+                      <div class="skeet-dropdown-item" data-val="dictionary_words.txt" onclick="selectDropdown('dd-source', 'dictionary_words.txt', 'Dictionary (2244)')">Dictionary (2244)</div>
+                      <div class="skeet-dropdown-item" data-val="gen_3l" onclick="selectDropdown('dd-source', 'gen_3l', '3L pronounceable')">3L pronounceable</div>
+                      <div class="skeet-dropdown-item" data-val="gen_4l" onclick="selectDropdown('dd-source', 'gen_4l', '4L pronounceable')">4L pronounceable</div>
+                      <div class="skeet-dropdown-item" data-val="gen_gaming" onclick="selectDropdown('dd-source', 'gen_gaming', 'Compound words')">Compound words</div>
+                      <div class="skeet-dropdown-item" data-val="custom_input" onclick="selectDropdown('dd-source', 'custom_input', 'Custom input')">Custom input</div>
+                    </div>
+                  </div>
+                  <input type="hidden" id="wordlist-source-select" value="og_cool_words.txt" />
+                </div>
+
+                <!-- Custom Input Area -->
+                <div id="custom-input-container" style="display: none; margin-bottom: 9px;">
+                  <textarea class="skeet-textarea" id="custom-names-textarea" placeholder="Usernames (one per line)..."></textarea>
+                </div>
+
+                <div class="control-row" style="margin-bottom: 5px;">
+                  <label class="skeet-checkbox-label">
+                    <input type="checkbox" id="check-force-recheck" />
+                    <span>Bypass DB cache</span>
+                  </label>
+                </div>
+
+                <div class="control-row" style="margin-bottom: 12px;">
+                  <label class="skeet-checkbox-label">
+                    <input type="checkbox" id="check-detect-idle-dash" checked />
+                    <span>Detect idle accounts</span>
+                  </label>
+                </div>
+
+                <!-- Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                  <button class="skeet-btn" id="btn-start" onclick="startChecker()">Start</button>
+                  <button class="skeet-btn" id="btn-pause" onclick="pauseChecker()" disabled>Pause</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                  <button class="skeet-btn danger" id="btn-stop" onclick="stopChecker()" disabled>Stop</button>
+                  <button class="skeet-btn" onclick="clearResultsView()">Clear</button>
+                </div>
+
+                <button class="skeet-btn" style="width: 100%;" onclick="openExportsFolder()">Open exports</button>
+              </div>
+
+              <!-- Activity Inset Box -->
+              <div class="skeet-groupbox flex-1">
+                <span class="skeet-groupbox-title">Activity</span>
+                <div class="skeet-inset-box" id="activity-feed-box" style="height: 100%;">
+                  <div class="feed-content" id="activity-feed">
+                    <div class="feed-line dim">Idle.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Available Table -->
+            <div class="skeet-groupbox" style="flex: 1;">
+              <span class="skeet-groupbox-title">
+                Available (<span id="found-count-tag" style="color: var(--available);">0</span>)
+              </span>
+
+              <div class="skeet-inset-box">
+                <table>
+                  <thead>
+                    <tr>
+                      <th class="sortable" id="th-avail-name" onclick="handleAvailableSort('name')">Nickname</th>
+                      <th class="sortable" id="th-avail-status" onclick="handleAvailableSort('status')">Status</th>
+                      <th class="sortable" id="th-avail-length" onclick="handleAvailableSort('length')">Length</th>
+                      <th class="sortable" id="th-avail-created" onclick="handleAvailableSort('created')">Created</th>
+                      <th class="sortable" id="th-avail-region" onclick="handleAvailableSort('region')">Region</th>
+                      <th>Details</th>
+                      <th style="width: 50px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="results-table-body">
+                    <tr>
+                      <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 36px;">
+                        No names checked.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB 2: GENERATOR -->
+        <div class="tab-view" id="tab-wordlists">
+          <div class="grid-equal">
+            <div class="skeet-groupbox">
+              <span class="skeet-groupbox-title">Generator</span>
+
+              <div style="margin-bottom: 10px;">
+                <span class="control-label" style="display: block; margin-bottom: 4px;">Mode</span>
+                
+                <!-- Custom Dropdown: Gen Mode -->
+                <div class="skeet-dropdown" id="dd-gen-mode">
+                  <div class="skeet-dropdown-header" onclick="toggleDropdown('dd-gen-mode')">
+                    <span id="dd-gen-mode-label">3L CVC</span>
+                    <span class="skeet-dropdown-arrow">&#9662;</span>
+                  </div>
+                  <div class="skeet-dropdown-menu">
+                    <div class="skeet-dropdown-item active" data-val="3l_cvc" onclick="selectDropdown('dd-gen-mode', '3l_cvc', '3L CVC')">3L CVC</div>
+                    <div class="skeet-dropdown-item" data-val="4l_cvcv" onclick="selectDropdown('dd-gen-mode', '4l_cvcv', '4L CVCV')">4L CVCV</div>
+                    <div class="skeet-dropdown-item" data-val="compound" onclick="selectDropdown('dd-gen-mode', 'compound', 'Compound')">Compound</div>
+                    <div class="skeet-dropdown-item" data-val="custom_pattern" onclick="selectDropdown('dd-gen-mode', 'custom_pattern', 'Custom pattern')">Custom pattern</div>
+                  </div>
+                </div>
+                <input type="hidden" id="gen-mode-select" value="3l_cvc" />
+              </div>
+
+              <div id="custom-pattern-box" style="display: none; margin-bottom: 10px;">
+                <span class="control-label" style="display: block; margin-bottom: 4px;">Pattern (C, V, L, D)</span>
+                <input type="text" class="skeet-input" id="gen-custom-pattern" value="CVCV" placeholder="CVC-D" />
+              </div>
+
+              <div class="skeet-slider-container" style="margin-bottom: 14px;">
+                <div class="skeet-slider-header">
+                  <span class="control-label">Count</span>
+                </div>
+                <div class="skeet-slider-row">
+                  <button class="skeet-stepper-btn" onclick="stepSlider('gen-count', -50)">-</button>
+                  <div class="skeet-slider-track-wrap">
+                    <input type="range" class="skeet-slider" id="gen-count" min="50" max="2000" step="50" value="500" oninput="updateSliderTrack(this, 'gen-count-val', '')" />
+                    <span class="skeet-slider-text-on-track" id="gen-count-val">500</span>
+                  </div>
+                  <button class="skeet-stepper-btn" onclick="stepSlider('gen-count', 50)">+</button>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 6px;">
+                <button class="skeet-btn" style="flex: 1;" onclick="generateAndPreview()">Generate</button>
+                <button class="skeet-btn" style="flex: 1;" onclick="generateAndSendToChecker()">Send to checker</button>
+              </div>
+            </div>
+
+            <div class="skeet-groupbox">
+              <span class="skeet-groupbox-title">Preview</span>
+              <div class="skeet-inset-box" style="height: 100%;">
+                <textarea class="skeet-textarea" id="generator-preview-box" style="height: 100%; border: none; box-shadow: none;" placeholder="Generated names..." readonly></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: DATABASE -->
+        <div class="tab-view" id="tab-database">
+          <div class="skeet-groupbox" style="flex: 1;">
+            <span class="skeet-groupbox-title">Database</span>
+
+            <div class="control-row" style="margin-bottom: 9px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="control-label">Status:</span>
+                
+                <!-- Custom Dropdown: DB Filter -->
+                <div class="skeet-dropdown" id="dd-db-filter" style="width: 140px;">
+                  <div class="skeet-dropdown-header" onclick="toggleDropdown('dd-db-filter')">
+                    <span id="dd-db-filter-label">Available</span>
+                    <span class="skeet-dropdown-arrow">&#9662;</span>
+                  </div>
+                  <div class="skeet-dropdown-menu">
+                    <div class="skeet-dropdown-item" data-val="ALL" onclick="selectDropdown('dd-db-filter', 'ALL', 'All')">All</div>
+                    <div class="skeet-dropdown-item active" data-val="AVAILABLE" onclick="selectDropdown('dd-db-filter', 'AVAILABLE', 'Available')">Available</div>
+                    <div class="skeet-dropdown-item" data-val="CLAIMABLE_IDLE" onclick="selectDropdown('dd-db-filter', 'CLAIMABLE_IDLE', 'Claimable')">Claimable</div>
+                    <div class="skeet-dropdown-item" data-val="TAKEN" onclick="selectDropdown('dd-db-filter', 'TAKEN', 'Taken')">Taken</div>
+                  </div>
+                </div>
+                <input type="hidden" id="db-filter-select" value="AVAILABLE" />
+              </div>
+
+              <div style="display: flex; gap: 6px;">
+                <button class="skeet-btn" onclick="refreshDatabaseView()">Refresh</button>
+                <button class="skeet-btn danger" onclick="clearDatabase()">Wipe DB</button>
+              </div>
+            </div>
+
+            <div class="skeet-inset-box">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="sortable" id="th-db-name" onclick="handleDbSort('name')">Nickname</th>
+                    <th class="sortable" id="th-db-status" onclick="handleDbSort('status')">Status</th>
+                    <th class="sortable" id="th-db-length" onclick="handleDbSort('length')">Length</th>
+                    <th class="sortable" id="th-db-created" onclick="handleDbSort('created')">Created</th>
+                    <th class="sortable" id="th-db-region" onclick="handleDbSort('region')">Region</th>
+                    <th class="sortable" id="th-db-elo" onclick="handleDbSort('elo')">ELO</th>
+                    <th class="sortable" id="th-db-games" onclick="handleDbSort('games')">Games</th>
+                    <th>Checked</th>
+                    <th style="width: 50px;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="db-table-body">
+                  <tr>
+                    <td colspan="9" style="text-align: center; color: var(--text-dim); padding: 30px;">
+                      Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: SETTINGS -->
+        <div class="tab-view" id="tab-settings">
+          <div class="grid-equal">
+            <!-- Left Groupbox: API Key -->
+            <div class="skeet-groupbox">
+              <span class="skeet-groupbox-title">API key</span>
+
+              <div style="margin-bottom: 10px;">
+                <input type="text" class="skeet-input" id="setting-api-key" placeholder="Key (or comma-separated keys)" />
+              </div>
+
+              <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 10px;">
+                <button class="skeet-btn" onclick="testApiKey()">Test key</button>
+                <span id="api-key-test-result" style="font-size: 11px;"></span>
+              </div>
+
+              <!-- Dry API Key Tutorial -->
+              <div style="border-top: 1px solid var(--border-inner); padding-top: 8px; margin-top: 8px;">
+                <span style="font-size: 10px; color: var(--text-dim); line-height: 1.4; display: block;">
+                  Setup:
+                  <br/>1. developers.faceit.com
+                  <br/>2. App Studio &gt; Create app
+                  <br/>3. API Keys &gt; Create Server Side key
+                  <br/>4. Paste token above
+                </span>
+              </div>
+            </div>
+
+            <!-- Right Groupbox: Settings -->
+            <div class="skeet-groupbox">
+              <span class="skeet-groupbox-title">Settings</span>
+
+              <div class="skeet-slider-container">
+                <div class="skeet-slider-header">
+                  <span class="control-label">Threads</span>
+                </div>
+                <div class="skeet-slider-row">
+                  <button class="skeet-stepper-btn" onclick="stepSlider('setting-threads', -1)">-</button>
+                  <div class="skeet-slider-track-wrap">
+                    <input type="range" class="skeet-slider" id="setting-threads" min="1" max="10" step="1" value="3" oninput="updateSliderTrack(this, 'threads-val', '')" />
+                    <span class="skeet-slider-text-on-track" id="threads-val">3</span>
+                  </div>
+                  <button class="skeet-stepper-btn" onclick="stepSlider('setting-threads', 1)">+</button>
+                </div>
+              </div>
+
+              <div class="skeet-slider-container">
+                <div class="skeet-slider-header">
+                  <span class="control-label">Delay</span>
+                </div>
+                <div class="skeet-slider-row">
+                  <button class="skeet-stepper-btn" onclick="stepSlider('setting-delay', -0.05)">-</button>
+                  <div class="skeet-slider-track-wrap">
+                    <input type="range" class="skeet-slider" id="setting-delay" min="0.1" max="2.0" step="0.05" value="0.35" oninput="updateSliderTrack(this, 'delay-val', 's')" />
+                    <span class="skeet-slider-text-on-track" id="delay-val">0.35s</span>
+                  </div>
+                  <button class="skeet-stepper-btn" onclick="stepSlider('setting-delay', 0.05)">+</button>
+                </div>
+              </div>
+
+              <div class="control-row" style="margin-top: 6px;">
+                <label class="skeet-checkbox-label">
+                  <input type="checkbox" id="setting-detect-idle" checked />
+                  <span>Detect idle accounts</span>
+                </label>
+              </div>
+
+              <div class="control-row" style="margin-top: 3px;">
+                <label class="skeet-checkbox-label">
+                  <input type="checkbox" id="setting-skip-checked" checked />
+                  <span>Skip checked names</span>
+                </label>
+              </div>
+
+              <!-- Accent Color Switcher -->
+              <div style="border-top: 1px solid var(--border-inner); padding-top: 10px; margin-top: 10px;">
+                <div class="control-row">
+                  <span class="control-label">Accent color:</span>
+                  <div class="color-swatch-row">
+                    <div class="color-swatch active" style="background-color: #a822f5;" onclick="setMenuColor('#a822f5', 'rgba(168, 34, 245, 0.35)')" title="Purple"></div>
+                    <div class="color-swatch" style="background-color: #2a75d3;" onclick="setMenuColor('#2a75d3', 'rgba(42, 117, 211, 0.35)')" title="Blue"></div>
+                    <div class="color-swatch" style="background-color: #ff5500;" onclick="setMenuColor('#ff5500', 'rgba(255, 85, 0, 0.35)')" title="Orange"></div>
+                    <div class="color-swatch" style="background-color: #00e5ff;" onclick="setMenuColor('#00e5ff', 'rgba(0, 229, 255, 0.35)')" title="Cyan"></div>
+                    <div class="color-swatch" style="background-color: #00e676;" onclick="setMenuColor('#00e676', 'rgba(0, 230, 118, 0.35)')" title="Green"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                <button class="skeet-btn" style="flex: 1;" onclick="saveSettings()">Save</button>
+                <span id="save-status" style="font-size: 10px; color: var(--available);"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Window Resize Handles (Bottom Corners & Borders) -->
+    <div class="skeet-resizer resizer-sw" onpointerdown="startWindowResize(event, 'sw')"></div>
+    <div class="skeet-resizer resizer-se" onpointerdown="startWindowResize(event, 'se')"></div>
+    <div class="skeet-resizer resizer-s" onpointerdown="startWindowResize(event, 's')"></div>
+    <div class="skeet-resizer resizer-w" onpointerdown="startWindowResize(event, 'w')"></div>
+    <div class="skeet-resizer resizer-e" onpointerdown="startWindowResize(event, 'e')"></div>
+  </div>
+
+  <script>
+    // Window Resize Handler
+    let isWindowResizing = false;
+    let resizeDir = '';
+    let resizeStartX = 0, resizeStartY = 0;
+    let resizeStartW = 0, resizeStartH = 0;
+    let resizeStartWinX = 0, resizeStartWinY = 0;
+    let resizeRaf = null;
+    const MIN_WIN_WIDTH = 840;
+    const MIN_WIN_HEIGHT = 540;
+
+    function startWindowResize(e, dir) {
+      e.preventDefault();
+      e.stopPropagation();
+      isWindowResizing = true;
+      resizeDir = dir;
+      resizeStartX = e.screenX;
+      resizeStartY = e.screenY;
+      resizeStartW = window.outerWidth;
+      resizeStartH = window.outerHeight;
+      resizeStartWinX = window.screenX;
+      resizeStartWinY = window.screenY;
+
+      try {
+        e.target.setPointerCapture(e.pointerId);
+      } catch (_) {}
+
+      const onPointerMove = (ev) => {
+        if (!isWindowResizing) return;
+        const dx = ev.screenX - resizeStartX;
+        const dy = ev.screenY - resizeStartY;
+        let newW = resizeStartW, newH = resizeStartH;
+        let newX = resizeStartWinX, newY = resizeStartWinY;
+
+        if (resizeDir.includes('e')) {
+          newW = Math.max(MIN_WIN_WIDTH, resizeStartW + dx);
+        }
+        if (resizeDir.includes('s')) {
+          newH = Math.max(MIN_WIN_HEIGHT, resizeStartH + dy);
+        }
+        if (resizeDir.includes('w')) {
+          const potentialW = resizeStartW - dx;
+          if (potentialW >= MIN_WIN_WIDTH) {
+            newW = potentialW;
+            newX = resizeStartWinX + dx;
+          } else {
+            newW = MIN_WIN_WIDTH;
+            newX = resizeStartWinX + (resizeStartW - MIN_WIN_WIDTH);
+          }
+        }
+        if (resizeDir.includes('n')) {
+          const potentialH = resizeStartH - dy;
+          if (potentialH >= MIN_WIN_HEIGHT) {
+            newH = potentialH;
+            newY = resizeStartWinY + dy;
+          } else {
+            newH = MIN_WIN_HEIGHT;
+            newY = resizeStartWinY + (resizeStartH - MIN_WIN_HEIGHT);
+          }
+        }
+
+        if (!resizeRaf) {
+          resizeRaf = requestAnimationFrame(() => {
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.resize_window_bounds) {
+              window.pywebview.api.resize_window_bounds(
+                Math.round(newX),
+                Math.round(newY),
+                Math.round(newW),
+                Math.round(newH)
+              );
+            }
+            resizeRaf = null;
+          });
+        }
+      };
+
+      const onPointerUp = (ev) => {
+        isWindowResizing = false;
+        try {
+          ev.target.releasePointerCapture(ev.pointerId);
+        } catch (_) {}
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+    }
+
+    // Window control functions
+    function minimizeWindow() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.minimize_window) {
+        window.pywebview.api.minimize_window();
+      }
+    }
+
+    function closeWindow() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.close_window) {
+        window.pywebview.api.close_window();
+      } else {
+        window.close();
+      }
+    }
+
+    // Tab switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.skeet-tab-btn').forEach(el => el.classList.remove('active'));
+
+      const target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('active');
+
+      const btn = document.getElementById('btn-nav-' + tabId);
+      if (btn) btn.classList.add('active');
+
+      if (tabId === 'database') {
+        refreshDatabaseView();
+      }
+    }
+
+    // Custom Dropdown Controller
+    function toggleDropdown(ddId) {
+      const dd = document.getElementById(ddId);
+      const wasOpen = dd.classList.contains('open');
+      document.querySelectorAll('.skeet-dropdown').forEach(el => el.classList.remove('open'));
+      if (!wasOpen) {
+        dd.classList.add('open');
+      }
+    }
+
+    function selectDropdown(ddId, val, label) {
+      const dd = document.getElementById(ddId);
+      dd.querySelector('.skeet-dropdown-header span:first-child').innerText = label;
+      dd.querySelectorAll('.skeet-dropdown-item').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-val') === val);
+      });
+      dd.classList.remove('open');
+
+      if (ddId === 'dd-source') {
+        document.getElementById('wordlist-source-select').value = val;
+        onSourceChange(val);
+      } else if (ddId === 'dd-gen-mode') {
+        document.getElementById('gen-mode-select').value = val;
+        document.getElementById('custom-pattern-box').style.display = (val === 'custom_pattern') ? 'block' : 'none';
+      } else if (ddId === 'dd-db-filter') {
+        document.getElementById('db-filter-select').value = val;
+        refreshDatabaseView();
+      }
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.skeet-dropdown')) {
+        document.querySelectorAll('.skeet-dropdown').forEach(el => el.classList.remove('open'));
+      }
+    });
+
+    function onSourceChange(src) {
+      const customBox = document.getElementById('custom-input-container');
+      if (src === 'custom_input') {
+        customBox.style.display = 'block';
+      } else {
+        customBox.style.display = 'none';
+      }
+    }
+
+    // Slider track gradient fill & stepper
+    function updateSliderTrack(el, valId, unit) {
+      const min = parseFloat(el.min);
+      const max = parseFloat(el.max);
+      const val = parseFloat(el.value);
+      const pct = ((val - min) / (max - min)) * 100;
+      el.style.background = `linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0.40) 100%), linear-gradient(to right, var(--menu-color) ${pct}%, #282a30 ${pct}%)`;
+
+      const displayVal = (unit === 's') ? val.toFixed(2) + 's' : val;
+      if (valId) {
+        const valEl = document.getElementById(valId);
+        if (valEl) {
+          valEl.innerText = displayVal;
+          valEl.style.left = `clamp(14px, ${pct}%, calc(100% - 14px))`;
+        }
+      }
+    }
+
+    function stepSlider(sliderId, delta) {
+      const el = document.getElementById(sliderId);
+      const min = parseFloat(el.min);
+      const max = parseFloat(el.max);
+      const step = parseFloat(el.step) || 1;
+      let val = parseFloat(el.value) + delta;
+      val = Math.max(min, Math.min(max, Math.round(val / step) * step));
+      el.value = val;
+
+      if (sliderId === 'setting-threads') updateSliderTrack(el, 'threads-val', '');
+      else if (sliderId === 'setting-delay') updateSliderTrack(el, 'delay-val', 's');
+      else if (sliderId === 'gen-count') updateSliderTrack(el, 'gen-count-val', '');
+    }
+
+    // Logger
+    function logFeed(msg, type = '') {
+      const feed = document.getElementById('activity-feed');
+      const box = document.getElementById('activity-feed-box');
+      const div = document.createElement('div');
+      div.className = 'feed-line ' + type;
+      const timeStr = new Date().toLocaleTimeString();
+      div.innerText = `[${timeStr}] ${msg}`;
+      feed.appendChild(div);
+      if (box) box.scrollTop = box.scrollHeight;
+    }
+
+    function getHueFromHex(hex) {
+      if (hex.startsWith('#')) hex = hex.slice(1);
+      if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+      }
+      const r = parseInt(hex.slice(0, 2), 16) / 255;
+      const g = parseInt(hex.slice(2, 4), 16) / 255;
+      const b = parseInt(hex.slice(4, 6), 16) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const delta = max - min;
+      if (delta === 0) return 0;
+      let h = 0;
+      if (max === r) {
+        h = ((g - b) / delta) % 6;
+      } else if (max === g) {
+        h = (b - r) / delta + 2;
+      } else {
+        h = (r - g) / delta + 4;
+      }
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+      return h;
+    }
+
+    // Accent Color Customizer
+    function setMenuColor(colorHex, glowHex) {
+      document.documentElement.style.setProperty('--menu-color', colorHex);
+      document.documentElement.style.setProperty('--menu-color-glow', glowHex);
+      
+      const h = getHueFromHex(colorHex);
+
+      // Sampled directly from reference screenshot:
+      // Dropdown menu background: S ~ 16%, L ~ 13% (#1c2427)
+      // Dropdown header background: S ~ 15%, L ~ 11.5% (#191e22)
+      // Dropdown hover row background: S ~ 12%, L ~ 22% (#323b40)
+      // Dropdown active row background: S ~ 14%, L ~ 17%
+      // Dropdown border: S ~ 12%, L ~ 17%
+      document.documentElement.style.setProperty('--dd-bg', `hsl(${h}, 16%, 13%)`);
+      document.documentElement.style.setProperty('--dd-header-bg', `hsl(${h}, 15%, 11.5%)`);
+      document.documentElement.style.setProperty('--dd-border', `hsl(${h}, 12%, 17%)`);
+      document.documentElement.style.setProperty('--dd-item-hover', `hsl(${h}, 12%, 22%)`);
+      document.documentElement.style.setProperty('--dd-item-active', `hsl(${h}, 14%, 17%)`);
+
+      document.querySelectorAll('.color-swatch').forEach(el => {
+        el.classList.toggle('active', el.style.backgroundColor.toLowerCase() === colorHex.toLowerCase());
+      });
+
+      // Refresh slider tracks
+      initAllSliders();
+    }
+
+    function hexToRgba(hex, alpha) {
+      let r = 0, g = 0, b = 0;
+      if (hex.startsWith('#')) hex = hex.slice(1);
+      if (hex.length === 6) {
+        r = parseInt(hex.slice(0, 2), 16);
+        g = parseInt(hex.slice(2, 4), 16);
+        b = parseInt(hex.slice(4, 6), 16);
+      }
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // State Variables
+    let foundCount = 0;
+    let availableResults = [];
+    let availSortCol = null;
+    let availSortAsc = true;
+    let currentDbRecords = [];
+    let dbSortCol = null;
+    let dbSortAsc = true;
+
+    function openFaceitProfile(nick) {
+      if (!nick) return;
+      const url = `https://www.faceit.com/en/players/${encodeURIComponent(nick)}`;
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_url) {
+        window.pywebview.api.open_url(url);
+      } else {
+        window.open(url, '_blank');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeJsString(str) {
+      if (!str) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    async function startChecker() {
+      const source = document.getElementById('wordlist-source-select').value;
+      let customText = '';
+      if (source === 'custom_input') {
+        customText = document.getElementById('custom-names-textarea').value;
+        if (!customText.trim()) {
+          logFeed('No custom names.', 'red');
+          return;
+        }
+      }
+
+      document.getElementById('btn-start').disabled = true;
+      document.getElementById('btn-pause').disabled = false;
+      document.getElementById('btn-stop').disabled = false;
+
+      logFeed(`Starting: ${source}`, 'dim');
+      
+      const forceRecheck = document.getElementById('check-force-recheck').checked;
+      try {
+        const res = await window.pywebview.api.start_checker(source, customText, forceRecheck);
+        if (!res.success) {
+          logFeed(`Error: ${res.error}`, 'red');
+          resetButtons();
+          return;
+        }
+        logFeed(`Loaded ${res.queued} names.`, 'dim');
+      } catch (err) {
+        logFeed(`Error: ${err}`, 'red');
+        resetButtons();
+      }
+    }
+
+    async function pauseChecker() {
+      const res = await window.pywebview.api.pause_checker();
+      const btn = document.getElementById('btn-pause');
+      if (res.is_paused) {
+        btn.innerText = 'Resume';
+        logFeed('Paused.', 'gold');
+      } else {
+        btn.innerText = 'Pause';
+        logFeed('Resumed.', 'dim');
+      }
+    }
+
+    async function stopChecker() {
+      await window.pywebview.api.stop_checker();
+      resetButtons();
+      logFeed('Stopped.', 'red');
+    }
+
+    function resetButtons() {
+      document.getElementById('btn-start').disabled = false;
+      const pauseBtn = document.getElementById('btn-pause');
+      pauseBtn.disabled = true;
+      pauseBtn.innerText = 'Pause';
+      document.getElementById('btn-stop').disabled = true;
+    }
+
+    // Callbacks from Python
+    window.onCheckerProgress = function(stats) {
+      document.getElementById('stat-total').innerText = stats.total;
+      document.getElementById('stat-checked').innerText = stats.checked;
+      document.getElementById('stat-available').innerText = stats.available;
+      document.getElementById('stat-claimable').innerText = stats.claimable;
+      document.getElementById('stat-taken').innerText = stats.taken;
+      document.getElementById('stat-speed').innerText = `${stats.speed_per_sec}/s`;
+
+      const pct = stats.total > 0 ? (stats.checked / stats.total * 100).toFixed(1) : 0;
+      document.getElementById('checker-progress-bar').style.width = pct + '%';
+    };
+
+    window.onCheckerResult = function(item) {
+      const status = item.status;
+      const nick = item.nickname;
+
+      if (status === 'AVAILABLE') {
+        logFeed(`Available: ${nick}`, 'green');
+        addResultToTable(item);
+      } else if (status === 'CLAIMABLE_IDLE') {
+        logFeed(`Claimable: ${nick}`, 'gold');
+        addResultToTable(item);
+      } else if (status === 'ERROR') {
+        logFeed(`Error: ${nick}: ${item.details}`, 'red');
+      }
+    };
+
+    window.onCheckerFinish = function() {
+      logFeed('Finished.', 'green');
+      resetButtons();
+    };
+
+    // Sorting
+    function handleAvailableSort(col) {
+      if (availSortCol === col) {
+        availSortAsc = !availSortAsc;
+      } else {
+        availSortCol = col;
+        availSortAsc = true;
+      }
+
+      const cols = ['name', 'status', 'length', 'created', 'region'];
+      cols.forEach(c => {
+        const th = document.getElementById(`th-avail-${c}`);
+        if (th) {
+          if (c === col) {
+            th.classList.add('active');
+          } else {
+            th.classList.remove('active');
+          }
+        }
+      });
+
+      sortAvailableResults();
+      renderAvailableTable();
+    }
+
+    function sortAvailableResults() {
+      if (!availSortCol) return;
+
+      availableResults.sort((a, b) => {
+        let valA, valB;
+        if (availSortCol === 'name') {
+          valA = (a.nickname || '').toLowerCase();
+          valB = (b.nickname || '').toLowerCase();
+          return availSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (availSortCol === 'status') {
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          return availSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (availSortCol === 'length') {
+          valA = Number(a.length) || (a.nickname ? a.nickname.length : 0);
+          valB = Number(b.length) || (b.nickname ? b.nickname.length : 0);
+          return availSortAsc ? (valA - valB) : (valB - valA);
+        } else if (availSortCol === 'created') {
+          valA = a.account_created_at || '';
+          valB = b.account_created_at || '';
+          if (!valA && !valB) return 0;
+          if (!valA) return 1;
+          if (!valB) return -1;
+          return availSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (availSortCol === 'region') {
+          valA = (a.country || '').toLowerCase();
+          valB = (b.country || '').toLowerCase();
+          if (!valA && !valB) return 0;
+          if (!valA) return 1;
+          if (!valB) return -1;
+          return availSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return 0;
+      });
+    }
+
+    function renderAvailableTable() {
+      const tbody = document.getElementById('results-table-body');
+      if (!tbody) return;
+
+      if (availableResults.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 36px;">
+              No names checked.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      availableResults.forEach(item => {
+        const isAvail = item.status === 'AVAILABLE';
+        const tagClass = isAvail ? 'tag-available' : 'tag-claimable';
+        const statusLabel = isAvail ? 'Available' : 'Claimable';
+        const linkClass = isAvail ? '' : 'claimable';
+        const createdDisplay = item.account_created_at 
+          ? (escapeHtml(item.account_created_at) + (item.account_age_years ? ` (${item.account_age_years}y)` : '')) 
+          : '-';
+        const safeNick = escapeHtml(item.nickname);
+        const jsNick = escapeJsString(item.nickname);
+
+        html += `
+          <tr>
+            <td>
+              <span class="nickname-link ${linkClass}" onclick="openFaceitProfile('${jsNick}')" title="${safeNick}">
+                ${safeNick} <span class="ext-icon">&#8599;</span>
+              </span>
+            </td>
+            <td><span class="tag ${tagClass}">${statusLabel}</span></td>
+            <td>${item.length || safeNick.length}L</td>
+            <td style="font-size: 11px; color: #00d2ff;">${createdDisplay}</td>
+            <td>${escapeHtml(item.country) || '-'}</td>
+            <td style="color: var(--text-dim); font-size: 11px;">${escapeHtml(item.details) || '-'}</td>
+            <td>
+              <button class="skeet-btn" style="padding: 1px 6px; font-size: 10px; height: 19px;" onclick="copyNickname('${jsNick}')">
+                Copy
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function addResultToTable(item) {
+      const existingIdx = availableResults.findIndex(r => (r.nickname || '').toLowerCase() === (item.nickname || '').toLowerCase());
+      if (existingIdx >= 0) {
+        availableResults[existingIdx] = item;
+      } else {
+        if (availSortCol) {
+          availableResults.push(item);
+          sortAvailableResults();
+        } else {
+          availableResults.unshift(item);
+        }
+      }
+
+      foundCount = availableResults.length;
+      document.getElementById('found-count-tag').innerText = foundCount;
+      renderAvailableTable();
+    }
+
+    function copyNickname(name) {
+      navigator.clipboard.writeText(name);
+      logFeed(`Copied: ${name}`, 'dim');
+    }
+
+    function clearResultsView() {
+      availableResults = [];
+      foundCount = 0;
+      document.getElementById('found-count-tag').innerText = '0';
+      availSortCol = null;
+      availSortAsc = true;
+      const cols = ['name', 'status', 'length', 'created', 'region'];
+      cols.forEach(c => {
+        const th = document.getElementById(`th-avail-${c}`);
+        if (th) th.classList.remove('active');
+      });
+      renderAvailableTable();
+    }
+
+    async function openExportsFolder() {
+      await window.pywebview.api.open_exports_dir();
+    }
+
+    // Generator
+    async function generateAndPreview() {
+      const mode = document.getElementById('gen-mode-select').value;
+      const count = parseInt(document.getElementById('gen-count').value, 10) || 500;
+      const pattern = document.getElementById('gen-custom-pattern').value;
+
+      const res = await window.pywebview.api.generate_words(mode, count, pattern);
+      document.getElementById('generator-preview-box').value = res.words.join('\n');
+      logFeed(`Generated ${res.words.length} names.`, 'dim');
+    }
+
+    async function generateAndSendToChecker() {
+      await generateAndPreview();
+      const text = document.getElementById('generator-preview-box').value;
+      document.getElementById('custom-names-textarea').value = text;
+      selectDropdown('dd-source', 'custom_input', 'Custom input');
+      switchTab('dashboard');
+      logFeed('Transferred to input.', 'dim');
+    }
+
+    // Database
+    function handleDbSort(col) {
+      if (dbSortCol === col) {
+        dbSortAsc = !dbSortAsc;
+      } else {
+        dbSortCol = col;
+        dbSortAsc = true;
+      }
+
+      const cols = ['name', 'status', 'length', 'created', 'region', 'elo', 'games'];
+      cols.forEach(c => {
+        const th = document.getElementById(`th-db-${c}`);
+        if (th) {
+          if (c === col) {
+            th.classList.add('active');
+          } else {
+            th.classList.remove('active');
+          }
+        }
+      });
+
+      sortDbRecords();
+      renderDbTable();
+    }
+
+    function sortDbRecords() {
+      if (!dbSortCol || !currentDbRecords) return;
+
+      currentDbRecords.sort((a, b) => {
+        let valA, valB;
+        if (dbSortCol === 'name') {
+          valA = (a.nickname || '').toLowerCase();
+          valB = (b.nickname || '').toLowerCase();
+          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (dbSortCol === 'status') {
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (dbSortCol === 'length') {
+          valA = Number(a.length) || (a.nickname ? a.nickname.length : 0);
+          valB = Number(b.length) || (b.nickname ? b.nickname.length : 0);
+          return dbSortAsc ? (valA - valB) : (valB - valA);
+        } else if (dbSortCol === 'created') {
+          valA = a.account_created_at || '';
+          valB = b.account_created_at || '';
+          if (!valA && !valB) return 0;
+          if (!valA) return 1;
+          if (!valB) return -1;
+          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (dbSortCol === 'region') {
+          valA = (a.country || '').toLowerCase();
+          valB = (b.country || '').toLowerCase();
+          if (!valA && !valB) return 0;
+          if (!valA) return 1;
+          if (!valB) return -1;
+          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (dbSortCol === 'elo') {
+          valA = Number(a.faceit_elo) || 0;
+          valB = Number(b.faceit_elo) || 0;
+          return dbSortAsc ? (valA - valB) : (valB - valA);
+        } else if (dbSortCol === 'games') {
+          valA = Number(a.games_count) || 0;
+          valB = Number(b.games_count) || 0;
+          return dbSortAsc ? (valA - valB) : (valB - valA);
+        }
+        return 0;
+      });
+    }
+
+    function renderDbTable() {
+      const tbody = document.getElementById('db-table-body');
+      if (!tbody) return;
+
+      if (!currentDbRecords || currentDbRecords.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align: center; color: var(--text-dim); padding: 30px;">
+              No records.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      currentDbRecords.forEach(row => {
+        const isAvail = row.status === 'AVAILABLE';
+        const isClaim = row.status === 'CLAIMABLE_IDLE';
+        const tagClass = isAvail ? 'tag-available' : (isClaim ? 'tag-claimable' : 'tag-taken');
+        const linkClass = isAvail ? '' : (isClaim ? 'claimable' : 'taken');
+        const statusLabel = isAvail ? 'Available' : (isClaim ? 'Claimable' : 'Taken');
+        const createdDisplay = escapeHtml(row.account_created_at) || '-';
+        const safeNick = escapeHtml(row.nickname);
+        const jsNick = escapeJsString(row.nickname);
+
+        html += `
+          <tr>
+            <td>
+              <span class="nickname-link ${linkClass}" onclick="openFaceitProfile('${jsNick}')" title="${safeNick}">
+                ${safeNick} <span class="ext-icon">&#8599;</span>
+              </span>
+            </td>
+            <td><span class="tag ${tagClass}">${statusLabel}</span></td>
+            <td>${row.length}</td>
+            <td style="font-size: 11px; color: #00d2ff;">${createdDisplay}</td>
+            <td>${escapeHtml(row.country) || '-'}</td>
+            <td>${row.faceit_elo !== null && row.faceit_elo !== undefined ? row.faceit_elo : '-'}</td>
+            <td>${row.games_count !== null && row.games_count !== undefined ? row.games_count : 0}</td>
+            <td style="color: var(--text-dim); font-size: 10px;">${escapeHtml(row.checked_at) || '-'}</td>
+            <td>
+              <button class="skeet-btn" style="padding: 1px 6px; font-size: 10px; height: 19px;" onclick="copyNickname('${jsNick}')">Copy</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    async function refreshDatabaseView() {
+      const filter = document.getElementById('db-filter-select').value;
+      const records = await window.pywebview.api.get_db_records(filter);
+      currentDbRecords = records || [];
+      if (dbSortCol) {
+        sortDbRecords();
+      }
+      renderDbTable();
+    }
+
+    async function clearDatabase() {
+      if (confirm('Clear database cache?')) {
+        await window.pywebview.api.clear_db();
+        refreshDatabaseView();
+        logFeed('Database cleared.', 'dim');
+      }
+    }
+
+    // Settings
+    async function testApiKey() {
+      const key = document.getElementById('setting-api-key').value.trim();
+      const statusLabel = document.getElementById('api-key-test-result');
+      statusLabel.innerText = 'Verifying...';
+      statusLabel.style.color = '#00d2ff';
+
+      const res = await window.pywebview.api.test_api_key(key);
+      if (res.valid) {
+        statusLabel.innerText = 'Verified';
+        statusLabel.style.color = 'var(--available)';
+      } else {
+        statusLabel.innerText = 'Invalid';
+        statusLabel.style.color = 'var(--error)';
+      }
+    }
+
+    async function saveSettings() {
+      const key = document.getElementById('setting-api-key').value.trim();
+      const threads = parseInt(document.getElementById('setting-threads').value, 10);
+      const delay = parseFloat(document.getElementById('setting-delay').value);
+      const detectIdle = document.getElementById('setting-detect-idle').checked;
+      const skipChecked = document.getElementById('setting-skip-checked').checked;
+
+      await window.pywebview.api.save_config({
+        active_key: key,
+        api_keys: key ? key.split(',').map(s => s.trim()) : [],
+        threads: threads,
+        delay_between_requests: delay,
+        detect_idle_accounts: detectIdle,
+        skip_already_checked: skipChecked
+      });
+
+      const st = document.getElementById('save-status');
+      st.innerText = 'Saved.';
+      setTimeout(() => { st.innerText = ''; }, 2000);
+      logFeed('Saved.', 'dim');
+    }
+
+    // Init
+    window.addEventListener('pywebviewready', async function() {
+      const cfg = await window.pywebview.api.get_config();
+      if (cfg) {
+        if (cfg.active_key) {
+          document.getElementById('setting-api-key').value = cfg.active_key;
+        }
+        if (cfg.threads) {
+          document.getElementById('setting-threads').value = cfg.threads;
+          updateSliderTrack(document.getElementById('setting-threads'), 'threads-val', '');
+        }
+        if (cfg.delay_between_requests) {
+          document.getElementById('setting-delay').value = cfg.delay_between_requests;
+          updateSliderTrack(document.getElementById('setting-delay'), 'delay-val', 's');
+        }
+        if (cfg.detect_idle_accounts !== undefined) {
+          document.getElementById('setting-detect-idle').checked = cfg.detect_idle_accounts;
+          document.getElementById('check-detect-idle-dash').checked = cfg.detect_idle_accounts;
+        }
+        if (cfg.skip_already_checked !== undefined) {
+          document.getElementById('setting-skip-checked').checked = cfg.skip_already_checked;
+        }
+      }
+
+      // Initialize all slider tracks
+      initAllSliders();
+
+      logFeed('Connected.', 'green');
+    });
+
+    function initAllSliders() {
+      ['setting-threads', 'setting-delay', 'gen-count'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const u = (id === 'setting-delay') ? 's' : '';
+          const vid = (id === 'setting-threads') ? 'threads-val' : (id === 'setting-delay' ? 'delay-val' : 'gen-count-val');
+          updateSliderTrack(el, vid, u);
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setMenuColor('#a822f5', 'rgba(168, 34, 245, 0.35)');
+      initAllSliders();
+    });
+  </script>
+</body>
+</html>
