@@ -1,7 +1,7 @@
 ﻿# Namesniper
 
 Fully vibecoded multi-threaded Faceit username availability checker and account scanner.
-
+![GUI IMAGE](https://github.com/lxgxnd4ry/faceit-namesniper/blob/main/gui.png)
 Provides a frameless desktop GUI and an interactive terminal CLI for discovering available usernames and claimable idle accounts on Faceit.
 
 ---
