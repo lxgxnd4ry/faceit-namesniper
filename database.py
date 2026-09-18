@@ -47,6 +47,20 @@ class Database:
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_status ON checked_names(status)
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS checked_steam_ids (
+                    vanity TEXT PRIMARY KEY COLLATE NOCASE,
+                    status TEXT NOT NULL, -- AVAILABLE, TAKEN, INVALID, ERROR
+                    length INTEGER NOT NULL,
+                    steamid64 TEXT,
+                    profile_url TEXT,
+                    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    details TEXT
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_steam_status ON checked_steam_ids(status)
+            """)
             conn.commit()
 
     def is_already_checked(self, nickname: str) -> bool:
@@ -156,4 +170,99 @@ class Database:
         """Clear all records."""
         with self._connection() as conn:
             conn.execute("DELETE FROM checked_names")
+            conn.commit()
+
+    # --- Steam ID Methods ---
+
+    def is_steam_already_checked(self, vanity: str) -> bool:
+        """Check if a Steam vanity has already been checked."""
+        with self._connection() as conn:
+            cursor = conn.execute(
+                "SELECT 1 FROM checked_steam_ids WHERE vanity = ? COLLATE NOCASE",
+                (vanity,)
+            )
+            return cursor.fetchone() is not None
+
+    def get_already_checked_steam_set(self) -> set:
+        """Get set of all checked Steam vanities in lowercase."""
+        with self._connection() as conn:
+            cursor = conn.execute("SELECT lower(vanity) FROM checked_steam_ids")
+            return {row[0] for row in cursor.fetchall()}
+
+    def record_steam_result(
+        self,
+        vanity: str,
+        status: str,
+        length: int,
+        steamid64: Optional[str] = None,
+        profile_url: Optional[str] = None,
+        details: Optional[str] = None
+    ) -> None:
+        """Insert or update a Steam check result."""
+        with self._connection() as conn:
+            conn.execute("""
+                INSERT INTO checked_steam_ids (
+                    vanity, status, length, steamid64, profile_url, checked_at, details
+                ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                ON CONFLICT(vanity) DO UPDATE SET
+                    status=excluded.status,
+                    length=excluded.length,
+                    steamid64=excluded.steamid64,
+                    profile_url=excluded.profile_url,
+                    checked_at=CURRENT_TIMESTAMP,
+                    details=excluded.details
+            """, (vanity, status, length, steamid64, profile_url, details))
+            conn.commit()
+
+    def get_all_steam_records(
+        self,
+        limit: int = 500,
+        offset: int = 0,
+        filter_status: Optional[str] = None,
+        search_query: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Fetch Steam check records with optional filtering."""
+        query = "SELECT * FROM checked_steam_ids WHERE 1=1"
+        params = []
+
+        if filter_status and filter_status != "ALL":
+            query += " AND status = ?"
+            params.append(filter_status)
+
+        if search_query:
+            query += " AND vanity LIKE ?"
+            params.append(f"%{search_query}%")
+
+        query += " ORDER BY checked_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        with self._connection() as conn:
+            cursor = conn.execute(query, tuple(params))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_steam_stats(self) -> Dict[str, int]:
+        """Get summary statistics of Steam checks."""
+        with self._connection() as conn:
+            cursor = conn.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'AVAILABLE' THEN 1 ELSE 0 END) as available,
+                    SUM(CASE WHEN status = 'TAKEN' THEN 1 ELSE 0 END) as taken,
+                    SUM(CASE WHEN status = 'INVALID' THEN 1 ELSE 0 END) as invalid
+                FROM checked_steam_ids
+            """)
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "total": row["total"] or 0,
+                    "available": row["available"] or 0,
+                    "taken": row["taken"] or 0,
+                    "invalid": row["invalid"] or 0,
+                }
+            return {"total": 0, "available": 0, "taken": 0, "invalid": 0}
+
+    def clear_steam_records(self) -> None:
+        """Clear all Steam check records."""
+        with self._connection() as conn:
+            conn.execute("DELETE FROM checked_steam_ids")
             conn.commit()

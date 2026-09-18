@@ -13,6 +13,8 @@ from database import Database
 from faceit_api import FaceitAPIClient
 from generator import NameGenerator
 from checker import CheckerEngine
+from steam_api import SteamAPIClient
+from steam_checker import SteamCheckerEngine
 
 class NamesniperAPI:
     def __init__(self):
@@ -22,6 +24,10 @@ class NamesniperAPI:
             api_keys=self._get_keys_from_config(),
             proxies=self._config.get("proxies", []),
             detect_idle=self._config.get("detect_idle_accounts", True)
+        )
+        self._steam_api_client = SteamAPIClient(
+            api_key=self._config.get("steam_api_key", ""),
+            proxies=self._config.get("proxies", [])
         )
         self._window = None
         self._engine = CheckerEngine(
@@ -33,6 +39,16 @@ class NamesniperAPI:
             on_result=self._on_result,
             on_progress=self._on_progress,
             on_finish=self._on_finish
+        )
+        self._steam_engine = SteamCheckerEngine(
+            api_client=self._steam_api_client,
+            database=self._database,
+            threads=self._config.get("threads", 3),
+            delay_between_requests=self._config.get("delay_between_requests", 0.35),
+            save_taken=self._config.get("save_taken", False),
+            on_result=self._on_steam_result,
+            on_progress=self._on_steam_progress,
+            on_finish=self._on_steam_finish
         )
 
     def set_window(self, window):
@@ -59,6 +75,18 @@ class NamesniperAPI:
         if self._window:
             self._window.evaluate_js("window.onCheckerFinish()")
 
+    def _on_steam_result(self, result: Dict[str, Any]) -> None:
+        if self._window:
+            self._window.evaluate_js(f"window.onSteamResult({json.dumps(result)})")
+
+    def _on_steam_progress(self, stats: Dict[str, Any]) -> None:
+        if self._window:
+            self._window.evaluate_js(f"window.onSteamProgress({json.dumps(stats)})")
+
+    def _on_steam_finish(self) -> None:
+        if self._window:
+            self._window.evaluate_js("window.onSteamFinish()")
+
     def get_config(self) -> Dict[str, Any]:
         """Return current configuration to frontend."""
         return self._config
@@ -75,6 +103,11 @@ class NamesniperAPI:
         self._engine.delay = self._config.get("delay_between_requests", 0.35)
         self._engine.detect_idle = self._config.get("detect_idle_accounts", True)
         self._api_client.detect_idle = self._config.get("detect_idle_accounts", True)
+
+        self._steam_api_client.api_key = self._config.get("steam_api_key", "").strip() or None
+        self._steam_engine.num_threads = self._config.get("threads", 3)
+        self._steam_engine.delay = self._config.get("delay_between_requests", 0.35)
+        self._steam_engine.save_taken = self._config.get("save_taken", False)
 
         return {"success": True}
 
@@ -125,16 +158,8 @@ class NamesniperAPI:
         except Exception as e:
             print(f"Error opening URL: {e}")
 
-    def start_checker(self, source: str, custom_text: str = "", force_recheck: bool = False) -> Dict[str, Any]:
-        """Start the checker engine with selected source."""
-        # 1. Ensure active API key is set
-        keys = self._get_keys_from_config()
-        if not keys:
-            return {"success": False, "error": "No Faceit API key provided. Please configure one in Settings."}
-
-        self._api_client.api_keys = keys
-
-        # 2. Collect names based on source
+    def _collect_names_for_source(self, source: str, custom_text: str = "") -> List[str]:
+        """Collect names based on selected source (shared by Faceit and Steam)."""
         names = []
         if source == "custom_input":
             names = [line.strip() for line in custom_text.splitlines() if line.strip()]
@@ -145,13 +170,23 @@ class NamesniperAPI:
         elif source == "gen_gaming":
             names = NameGenerator.generate_compound_words(count=800)
         else:
-            # Load from wordlists folder
             wordlist_path = get_wordlist_path(source)
-            if not wordlist_path.exists():
-                return {"success": False, "error": f"Wordlist file '{source}' not found"}
-            with open(wordlist_path, "r", encoding="utf-8") as f:
-                names = [line.strip() for line in f if line.strip()]
+            if wordlist_path.exists():
+                with open(wordlist_path, "r", encoding="utf-8") as f:
+                    names = [line.strip() for line in f if line.strip()]
+        return names
 
+    def start_checker(self, source: str, custom_text: str = "", force_recheck: bool = False) -> Dict[str, Any]:
+        """Start the checker engine with selected source."""
+        # 1. Ensure active API key is set
+        keys = self._get_keys_from_config()
+        if not keys:
+            return {"success": False, "error": "No Faceit API key provided. Please configure one in Settings."}
+
+        self._api_client.api_keys = keys
+
+        # 2. Collect names based on source
+        names = self._collect_names_for_source(source, custom_text)
         if not names:
             return {"success": False, "error": "No valid names found in the selected source."}
 
@@ -187,6 +222,66 @@ class NamesniperAPI:
     def stop_checker(self) -> Dict[str, Any]:
         """Stop current checking session."""
         self._engine.stop()
+        return {"success": True}
+
+    def start_steam_checker(self, source: str, custom_text: str = "", force_recheck: bool = False, threads: int = 3, delay: float = 0.35) -> Dict[str, Any]:
+        """Start Steam vanity checker engine."""
+        self._steam_engine.num_threads = max(1, min(int(threads), 10))
+        self._steam_engine.delay = max(0.05, float(delay))
+        self._steam_api_client.api_key = self._config.get("steam_api_key", "").strip() or None
+
+        names = self._collect_names_for_source(source, custom_text)
+        if not names:
+            return {"success": False, "error": "No valid names found in the selected source."}
+
+        skip_checked = False if force_recheck else self._config.get("skip_already_checked", True)
+        queued_count = self._steam_engine.load_names(names, skip_checked=skip_checked, min_len=3, max_len=32)
+
+        if queued_count == 0:
+            already_in_db = self._database.get_already_checked_steam_set()
+            checked_count = sum(1 for n in names if n.lower() in already_in_db)
+            if checked_count > 0:
+                return {
+                    "success": False,
+                    "error": f"All {checked_count} names already checked for Steam. Select Bypass DB cache to recheck."
+                }
+            return {"success": False, "error": "None of the names match Steam vanity criteria (3-32 characters)."}
+
+        self._steam_engine.start()
+        return {"success": True, "queued": queued_count}
+
+    def pause_steam_checker(self) -> Dict[str, Any]:
+        """Toggle pause/resume for Steam checker."""
+        if self._steam_engine.is_paused:
+            self._steam_engine.resume()
+            return {"is_paused": False}
+        else:
+            self._steam_engine.pause()
+            return {"is_paused": True}
+
+    def stop_steam_checker(self) -> Dict[str, Any]:
+        """Stop current Steam checking session."""
+        self._steam_engine.stop()
+        return {"success": True}
+
+    def open_steam_profile(self, vanity: str) -> None:
+        """Open Steam profile in browser."""
+        clean = vanity.strip()
+        if clean:
+            self.open_url(f"https://steamcommunity.com/id/{clean}/")
+
+    def get_steam_db_records(self, filter_status: str = "ALL", search: str = "", limit: int = 500, offset: int = 0) -> List[Dict[str, Any]]:
+        """Fetch checked Steam records from database."""
+        return self._database.get_all_steam_records(
+            limit=limit,
+            offset=offset,
+            filter_status=filter_status if filter_status != "ALL" else None,
+            search_query=search.strip() if search.strip() else None
+        )
+
+    def clear_steam_db(self) -> Dict[str, Any]:
+        """Clear all Steam records in database."""
+        self._database.clear_steam_records()
         return {"success": True}
 
     def resize_window_bounds(self, x: int, y: int, w: int, h: int) -> None:

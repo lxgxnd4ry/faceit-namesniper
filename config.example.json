@@ -1,4 +1,4 @@
-﻿{
+{
     "api_keys": [],
     "active_key": "",
     "threads": 3,
@@ -10,5 +10,6 @@
     "skip_already_checked": true,
     "proxies": [],
     "proxy_enabled": false,
-    "export_format": "txt"
+    "export_format": "txt",
+    "steam_api_key": ""
 }

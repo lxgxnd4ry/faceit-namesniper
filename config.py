@@ -60,7 +60,8 @@ DEFAULT_CONFIG = {
     "skip_already_checked": True,
     "proxies": [],
     "proxy_enabled": False,
-    "export_format": "txt"  # txt or csv
+    "export_format": "txt",  # txt or csv
+    "steam_api_key": ""
 }
 
 def load_config() -> dict:

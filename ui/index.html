@@ -946,6 +946,13 @@
           <span class="skeet-tab-label">Check</span>
         </button>
 
+        <button class="skeet-tab-btn" onclick="switchTab('steam')" id="btn-nav-steam" title="Steam">
+          <svg viewBox="0 0 24 24">
+            <path d="M11.979 2a10 10 0 0 0-9.98 9.213l5.518 2.275a2.97 2.97 0 0 1 1.684-.52c.154 0 .303.016.45.043l2.67-3.877a3.483 3.483 0 0 1-.034-.482 3.5 3.5 0 1 1 3.5 3.5c-.167 0-.33-.016-.487-.042l-3.87 2.668c.032.16.05.325.05.494a3.003 3.003 0 0 1-4.225 2.748L2.4 16.037A10 10 0 1 0 11.979 2z"/>
+          </svg>
+          <span class="skeet-tab-label">Steam</span>
+        </button>
+
         <button class="skeet-tab-btn" onclick="switchTab('wordlists')" id="btn-nav-wordlists" title="Generator">
           <svg viewBox="0 0 24 24">
             <path d="M7 2v2h1v14H7v2h10v-2h-1V4h1V2H7zm3 4h4v2h-4V6zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z"/>
@@ -1113,6 +1120,163 @@
           </div>
         </div>
 
+        <!-- TAB: STEAM ID CHECKER -->
+        <div class="tab-view" id="tab-steam">
+          <!-- Stats Readout -->
+          <div class="skeet-stats-grid">
+            <div class="stat-cell">
+              <span class="stat-title">Total</span>
+              <span class="stat-value" id="stat-steam-total">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Checked</span>
+              <span class="stat-value" id="stat-steam-checked">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Available</span>
+              <span class="stat-value green" id="stat-steam-available">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Taken</span>
+              <span class="stat-value dim" id="stat-steam-taken">0</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-title">Speed</span>
+              <span class="stat-value cyan" id="stat-steam-speed">0/s</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="skeet-progress-bar-container">
+            <div class="skeet-progress-bar-fill" id="steam-progress-bar"></div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Controls Column -->
+            <div class="col-flex">
+              <div class="skeet-groupbox">
+                <span class="skeet-groupbox-title">Controls</span>
+
+                <div style="margin-bottom: 9px;">
+                  <span class="control-label" style="display: block; margin-bottom: 4px;">Source</span>
+                  
+                  <!-- Custom Skeet Dropdown: Steam Source -->
+                  <div class="skeet-dropdown" id="dd-steam-source">
+                    <div class="skeet-dropdown-header" onclick="toggleDropdown('dd-steam-source')">
+                      <span id="dd-steam-source-label">OG words (611)</span>
+                      <span class="skeet-dropdown-arrow">&#9662;</span>
+                    </div>
+                    <div class="skeet-dropdown-menu">
+                      <div class="skeet-dropdown-item active" data-val="og_cool_words.txt" onclick="selectDropdown('dd-steam-source', 'og_cool_words.txt', 'OG words (611)')">OG words (611)</div>
+                      <div class="skeet-dropdown-item" data-val="short_3l.txt" onclick="selectDropdown('dd-steam-source', 'short_3l.txt', 'Short 3L (1054)')">Short 3L (1054)</div>
+                      <div class="skeet-dropdown-item" data-val="short_4l.txt" onclick="selectDropdown('dd-steam-source', 'short_4l.txt', 'Short 4L (1440)')">Short 4L (1440)</div>
+                      <div class="skeet-dropdown-item" data-val="dictionary_words.txt" onclick="selectDropdown('dd-steam-source', 'dictionary_words.txt', 'Dictionary (2244)')">Dictionary (2244)</div>
+                      <div class="skeet-dropdown-item" data-val="gen_3l" onclick="selectDropdown('dd-steam-source', 'gen_3l', '3L pronounceable')">3L pronounceable</div>
+                      <div class="skeet-dropdown-item" data-val="gen_4l" onclick="selectDropdown('dd-steam-source', 'gen_4l', '4L pronounceable')">4L pronounceable</div>
+                      <div class="skeet-dropdown-item" data-val="gen_gaming" onclick="selectDropdown('dd-steam-source', 'gen_gaming', 'Compound words')">Compound words</div>
+                      <div class="skeet-dropdown-item" data-val="custom_input" onclick="selectDropdown('dd-steam-source', 'custom_input', 'Custom input')">Custom input</div>
+                    </div>
+                  </div>
+                  <input type="hidden" id="steam-source-select" value="og_cool_words.txt" />
+                </div>
+
+                <!-- Custom Input Area -->
+                <div id="custom-steam-input-container" style="display: none; margin-bottom: 9px;">
+                  <textarea class="skeet-textarea" id="custom-steam-names-textarea" placeholder="Vanity IDs (one per line)..."></textarea>
+                </div>
+
+                <div class="control-row" style="margin-bottom: 9px;">
+                  <label class="skeet-checkbox-label">
+                    <input type="checkbox" id="check-steam-force-recheck" />
+                    <span>Bypass DB cache</span>
+                  </label>
+                </div>
+
+                <!-- Sliders for Steam -->
+                <div class="skeet-slider-container">
+                  <div class="skeet-slider-header">
+                    <span class="control-label">Threads</span>
+                  </div>
+                  <div class="skeet-slider-row">
+                    <button class="skeet-stepper-btn" onclick="stepSlider('steam-threads', -1)">-</button>
+                    <div class="skeet-slider-track-wrap">
+                      <input type="range" class="skeet-slider" id="steam-threads" min="1" max="10" step="1" value="3" oninput="updateSliderTrack(this, 'steam-threads-val', '')" />
+                      <span class="skeet-slider-text-on-track" id="steam-threads-val">3</span>
+                    </div>
+                    <button class="skeet-stepper-btn" onclick="stepSlider('steam-threads', 1)">+</button>
+                  </div>
+                </div>
+
+                <div class="skeet-slider-container" style="margin-bottom: 12px;">
+                  <div class="skeet-slider-header">
+                    <span class="control-label">Delay</span>
+                  </div>
+                  <div class="skeet-slider-row">
+                    <button class="skeet-stepper-btn" onclick="stepSlider('steam-delay', -0.05)">-</button>
+                    <div class="skeet-slider-track-wrap">
+                      <input type="range" class="skeet-slider" id="steam-delay" min="0.05" max="2.0" step="0.05" value="0.35" oninput="updateSliderTrack(this, 'steam-delay-val', 's')" />
+                      <span class="skeet-slider-text-on-track" id="steam-delay-val">0.35s</span>
+                    </div>
+                    <button class="skeet-stepper-btn" onclick="stepSlider('steam-delay', 0.05)">+</button>
+                  </div>
+                </div>
+
+                <!-- Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                  <button class="skeet-btn" id="btn-steam-start" onclick="startSteamChecker()">Start</button>
+                  <button class="skeet-btn" id="btn-steam-pause" onclick="pauseSteamChecker()" disabled>Pause</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                  <button class="skeet-btn danger" id="btn-steam-stop" onclick="stopSteamChecker()" disabled>Stop</button>
+                  <button class="skeet-btn" onclick="clearSteamResultsView()">Clear</button>
+                </div>
+
+                <button class="skeet-btn" style="width: 100%;" onclick="openExportsFolder()">Open exports</button>
+              </div>
+
+              <!-- Activity Inset Box -->
+              <div class="skeet-groupbox flex-1">
+                <span class="skeet-groupbox-title">Activity</span>
+                <div class="skeet-inset-box" id="activity-steam-feed-box" style="height: 100%;">
+                  <div class="feed-content" id="activity-steam-feed">
+                    <div class="feed-line dim">Idle.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Available Table -->
+            <div class="skeet-groupbox" style="flex: 1;">
+              <span class="skeet-groupbox-title">
+                Available (<span id="found-steam-count-tag" style="color: var(--available);">0</span>)
+              </span>
+
+              <div class="skeet-inset-box">
+                <table id="table-steam-available">
+                  <thead>
+                    <tr>
+                      <th class="sortable" id="th-steam-name" onclick="handleSteamAvailableSort('vanity')">Vanity ID</th>
+                      <th class="sortable" id="th-steam-status" onclick="handleSteamAvailableSort('status')">Status</th>
+                      <th class="sortable" id="th-steam-length" onclick="handleSteamAvailableSort('length')">Length</th>
+                      <th>Profile URL</th>
+                      <th style="width: 70px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="steam-results-table-body">
+                    <tr>
+                      <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 36px;">
+                        No Steam IDs checked.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         <!-- TAB 2: GENERATOR -->
         <div class="tab-view" id="tab-wordlists">
           <div class="grid-equal">
@@ -1255,6 +1419,12 @@
                   <br/>3. API Keys &gt; Create Server Side key
                   <br/>4. Paste token above
                 </span>
+              </div>
+
+              <!-- Optional Steam API Key -->
+              <div style="border-top: 1px solid var(--border-inner); padding-top: 8px; margin-top: 8px;">
+                <span class="control-label" style="display: block; margin-bottom: 4px;">Steam API key (optional)</span>
+                <input type="text" class="skeet-input" id="setting-steam-api-key" placeholder="Key (optional, public XML works without)" />
               </div>
             </div>
 
@@ -1478,6 +1648,9 @@
       if (ddId === 'dd-source') {
         document.getElementById('wordlist-source-select').value = val;
         onSourceChange(val);
+      } else if (ddId === 'dd-steam-source') {
+        document.getElementById('steam-source-select').value = val;
+        onSteamSourceChange(val);
       } else if (ddId === 'dd-gen-mode') {
         document.getElementById('gen-mode-select').value = val;
         document.getElementById('custom-pattern-box').style.display = (val === 'custom_pattern') ? 'block' : 'none';
@@ -1496,6 +1669,15 @@
 
     function onSourceChange(src) {
       const customBox = document.getElementById('custom-input-container');
+      if (src === 'custom_input') {
+        customBox.style.display = 'block';
+      } else {
+        customBox.style.display = 'none';
+      }
+    }
+
+    function onSteamSourceChange(src) {
+      const customBox = document.getElementById('custom-steam-input-container');
       if (src === 'custom_input') {
         customBox.style.display = 'block';
       } else {
@@ -1887,6 +2069,239 @@
       await window.pywebview.api.open_exports_dir();
     }
 
+    // Steam Controller
+    let steamResults = [];
+    let steamFoundCount = 0;
+    let steamSortCol = null;
+    let steamSortAsc = true;
+    let isSteamChecking = false;
+
+    function logSteamFeed(msg, type = '') {
+      const feed = document.getElementById('activity-steam-feed');
+      if (!feed) return;
+      const line = document.createElement('div');
+      line.className = 'feed-line ' + type;
+      line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      feed.appendChild(line);
+      const box = document.getElementById('activity-steam-feed-box');
+      if (box) box.scrollTop = box.scrollHeight;
+    }
+
+    async function startSteamChecker() {
+      const source = document.getElementById('steam-source-select').value;
+      const customText = document.getElementById('custom-steam-names-textarea').value;
+      const forceRecheck = document.getElementById('check-steam-force-recheck').checked;
+      const threads = parseInt(document.getElementById('steam-threads').value, 10) || 3;
+      const delay = parseFloat(document.getElementById('steam-delay').value) || 0.35;
+
+      document.getElementById('btn-steam-start').disabled = true;
+      document.getElementById('btn-steam-pause').disabled = false;
+      document.getElementById('btn-steam-pause').innerText = 'Pause';
+      document.getElementById('btn-steam-stop').disabled = false;
+      isSteamChecking = true;
+
+      logSteamFeed(`Starting check (${source})...`, 'cyan');
+
+      const res = await window.pywebview.api.start_steam_checker(source, customText, forceRecheck, threads, delay);
+      if (!res.success) {
+        logSteamFeed(`Error: ${res.error}`, 'red');
+        resetSteamButtons();
+      } else {
+        logSteamFeed(`Queued ${res.queued} Steam IDs.`, 'green');
+      }
+    }
+
+    async function pauseSteamChecker() {
+      const res = await window.pywebview.api.pause_steam_checker();
+      const btn = document.getElementById('btn-steam-pause');
+      if (res.is_paused) {
+        btn.innerText = 'Resume';
+        logSteamFeed('Paused.', 'gold');
+      } else {
+        btn.innerText = 'Pause';
+        logSteamFeed('Resumed.', 'green');
+      }
+    }
+
+    async function stopSteamChecker() {
+      await window.pywebview.api.stop_steam_checker();
+      resetSteamButtons();
+      logSteamFeed('Stopped.', 'red');
+    }
+
+    function resetSteamButtons() {
+      document.getElementById('btn-steam-start').disabled = false;
+      document.getElementById('btn-steam-pause').disabled = true;
+      document.getElementById('btn-steam-pause').innerText = 'Pause';
+      document.getElementById('btn-steam-stop').disabled = true;
+      isSteamChecking = false;
+    }
+
+    function clearSteamResultsView() {
+      steamResults = [];
+      steamFoundCount = 0;
+      document.getElementById('found-steam-count-tag').innerText = '0';
+      steamSortCol = null;
+      steamSortAsc = true;
+      const cols = ['name', 'status', 'length'];
+      cols.forEach(c => {
+        const th = document.getElementById(`th-steam-${c}`);
+        if (th) th.classList.remove('active');
+      });
+      renderSteamAvailableTable();
+    }
+
+    function openSteamProfile(vanity) {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_steam_profile) {
+        window.pywebview.api.open_steam_profile(vanity);
+      } else {
+        window.open(`https://steamcommunity.com/id/${vanity}/`, '_blank');
+      }
+    }
+
+    function copySteamVanity(vanity) {
+      navigator.clipboard.writeText(vanity);
+      logSteamFeed(`Copied: ${vanity}`, 'dim');
+    }
+
+    function renderSteamAvailableTable() {
+      const tbody = document.getElementById('steam-results-table-body');
+      if (!tbody) return;
+
+      if (steamResults.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 36px;">
+              No Steam IDs checked.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      steamResults.forEach(item => {
+        const safeVanity = escapeHtml(item.vanity);
+        const jsVanity = escapeJsString(item.vanity);
+        const url = `https://steamcommunity.com/id/${safeVanity}/`;
+
+        html += `
+          <tr>
+            <td>
+              <span class="nickname-link" onclick="openSteamProfile('${jsVanity}')" title="${safeVanity}">
+                ${safeVanity} <span class="ext-icon">&#8599;</span>
+              </span>
+            </td>
+            <td><span class="tag tag-available">Available</span></td>
+            <td>${item.length}L</td>
+            <td style="font-size: 11px; color: var(--text-dim); font-family: monospace;">${url}</td>
+            <td>
+              <button class="skeet-btn" style="padding: 1px 6px; font-size: 10px; height: 19px;" onclick="copySteamVanity('${jsVanity}')">Copy</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function addSteamResultToTable(item) {
+      const existingIdx = steamResults.findIndex(r => (r.vanity || '').toLowerCase() === (item.vanity || '').toLowerCase());
+      if (existingIdx >= 0) {
+        steamResults[existingIdx] = item;
+      } else {
+        if (steamSortCol) {
+          steamResults.push(item);
+          sortSteamAvailableResults();
+        } else {
+          steamResults.unshift(item);
+        }
+      }
+
+      steamFoundCount = steamResults.length;
+      document.getElementById('found-steam-count-tag').innerText = steamFoundCount;
+      renderSteamAvailableTable();
+    }
+
+    function handleSteamAvailableSort(col) {
+      if (steamSortCol === col) {
+        steamSortAsc = !steamSortAsc;
+      } else {
+        steamSortCol = col;
+        steamSortAsc = true;
+      }
+
+      const cols = ['name', 'status', 'length'];
+      cols.forEach(c => {
+        const th = document.getElementById(`th-steam-${c}`);
+        if (th) {
+          if ((c === 'name' && col === 'vanity') || c === col) {
+            th.classList.add('active');
+          } else {
+            th.classList.remove('active');
+          }
+        }
+      });
+
+      sortSteamAvailableResults();
+      renderSteamAvailableTable();
+    }
+
+    function sortSteamAvailableResults() {
+      if (!steamSortCol) return;
+      steamResults.sort((a, b) => {
+        let valA, valB;
+        if (steamSortCol === 'vanity') {
+          valA = (a.vanity || '').toLowerCase();
+          valB = (b.vanity || '').toLowerCase();
+          return steamSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (steamSortCol === 'status') {
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
+          return steamSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (steamSortCol === 'length') {
+          valA = Number(a.length) || (a.vanity ? a.vanity.length : 0);
+          valB = Number(b.length) || (b.vanity ? b.vanity.length : 0);
+          return steamSortAsc ? (valA - valB) : (valB - valA);
+        }
+        return 0;
+      });
+    }
+
+    // Window callbacks for Steam
+    window.onSteamResult = function(res) {
+      const status = res.status;
+      const vanity = res.vanity;
+
+      if (status === 'AVAILABLE') {
+        logSteamFeed(`[AVAILABLE] ${vanity}`, 'green');
+        addSteamResultToTable(res);
+      } else if (status === 'TAKEN') {
+        logSteamFeed(`[TAKEN] ${vanity}`, 'dim');
+      } else if (status === 'INVALID') {
+        logSteamFeed(`[INVALID] ${vanity}`, 'dim');
+      } else {
+        logSteamFeed(`[ERROR] ${vanity}: ${res.details || ''}`, 'red');
+      }
+    };
+
+    window.onSteamProgress = function(stats) {
+      document.getElementById('stat-steam-total').innerText = stats.total;
+      document.getElementById('stat-steam-checked').innerText = stats.checked;
+      document.getElementById('stat-steam-available').innerText = stats.available;
+      document.getElementById('stat-steam-taken').innerText = stats.taken;
+      document.getElementById('stat-steam-speed').innerText = `${stats.speed}/s`;
+
+      const bar = document.getElementById('steam-progress-bar');
+      if (bar) {
+        bar.style.width = `${stats.percent}%`;
+      }
+    };
+
+    window.onSteamFinish = function() {
+      logSteamFeed('Finished session.', 'cyan');
+      resetSteamButtons();
+    };
+
     // Generator
     async function generateAndPreview() {
       const mode = document.getElementById('gen-mode-select').value;
@@ -2062,6 +2477,7 @@
 
     async function saveSettings() {
       const key = document.getElementById('setting-api-key').value.trim();
+      const steamKey = document.getElementById('setting-steam-api-key').value.trim();
       const threads = parseInt(document.getElementById('setting-threads').value, 10);
       const delay = parseFloat(document.getElementById('setting-delay').value);
       const detectIdle = document.getElementById('setting-detect-idle').checked;
@@ -2070,6 +2486,7 @@
       await window.pywebview.api.save_config({
         active_key: key,
         api_keys: key ? key.split(',').map(s => s.trim()) : [],
+        steam_api_key: steamKey,
         threads: threads,
         delay_between_requests: delay,
         detect_idle_accounts: detectIdle,
@@ -2088,6 +2505,9 @@
       if (cfg) {
         if (cfg.active_key) {
           document.getElementById('setting-api-key').value = cfg.active_key;
+        }
+        if (cfg.steam_api_key) {
+          document.getElementById('setting-steam-api-key').value = cfg.steam_api_key;
         }
         if (cfg.threads) {
           document.getElementById('setting-threads').value = cfg.threads;
@@ -2113,11 +2533,14 @@
     });
 
     function initAllSliders() {
-      ['setting-threads', 'setting-delay', 'gen-count'].forEach(id => {
+      ['setting-threads', 'setting-delay', 'gen-count', 'steam-threads', 'steam-delay'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-          const u = (id === 'setting-delay') ? 's' : '';
-          const vid = (id === 'setting-threads') ? 'threads-val' : (id === 'setting-delay' ? 'delay-val' : 'gen-count-val');
+          const u = (id === 'setting-delay' || id === 'steam-delay') ? 's' : '';
+          const vid = (id === 'setting-threads') ? 'threads-val' :
+                      (id === 'setting-delay') ? 'delay-val' :
+                      (id === 'steam-threads') ? 'steam-threads-val' :
+                      (id === 'steam-delay') ? 'steam-delay-val' : 'gen-count-val';
           updateSliderTrack(el, vid, u);
         }
       });
