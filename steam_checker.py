@@ -1,4 +1,4 @@
-﻿"""
+"""
 Namesniper - Steam Checker Engine Module
 Multi-threaded worker queue for checking Steam vanity IDs,
 with real-time stats, thread-safe persistence, callbacks, and rate limiting.
@@ -11,17 +11,18 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable
 
 from config import EXPORTS_DIR, load_config
-from database import Database
+from database import Database, SteamDatabase
 from steam_api import SteamAPIClient
 
 class SteamCheckerEngine:
     def __init__(
         self,
         api_client: SteamAPIClient,
-        database: Database,
+        database: SteamDatabase,
         threads: int = 3,
         delay_between_requests: float = 0.35,
         save_taken: bool = False,
+        cooldown_duration: int = 60,
         on_result: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
         on_finish: Optional[Callable[[], None]] = None
@@ -31,6 +32,7 @@ class SteamCheckerEngine:
         self.num_threads = max(1, min(threads, 10))
         self.delay = delay_between_requests
         self.save_taken = save_taken
+        self.cooldown_duration = cooldown_duration
 
         # Callbacks
         self.on_result = on_result
@@ -43,6 +45,8 @@ class SteamCheckerEngine:
         self.is_running = False
         self.is_paused = False
         self.stop_requested = False
+        self.is_rate_limited = False
+        self.cooldown_remaining = 0
 
         # Synchronization
         self.lock = threading.Lock()
@@ -131,6 +135,8 @@ class SteamCheckerEngine:
         self.taken_count = 0
         self.invalid_count = 0
         self.error_count = 0
+        self.is_rate_limited = False
+        self.cooldown_remaining = 0
         return loaded
 
     def start(self) -> None:
@@ -141,6 +147,8 @@ class SteamCheckerEngine:
         self.is_running = True
         self.is_paused = False
         self.stop_requested = False
+        self.is_rate_limited = False
+        self.cooldown_remaining = 0
         self.pause_event.set()
         self.start_time = time.time()
         self.workers.clear()
@@ -158,11 +166,17 @@ class SteamCheckerEngine:
     def resume(self) -> None:
         """Resume checking."""
         self.is_paused = False
+        with self.lock:
+            self.is_rate_limited = False
+            self.cooldown_remaining = 0
         self.pause_event.set()
 
     def stop(self) -> None:
         """Stop checking and drain queue."""
         self.stop_requested = True
+        with self.lock:
+            self.is_rate_limited = False
+            self.cooldown_remaining = 0
         self.pause_event.set()
         with self.queue.mutex:
             self.queue.queue.clear()
@@ -184,6 +198,25 @@ class SteamCheckerEngine:
             try:
                 result = self.api_client.check_vanity(vanity)
                 status = result["status"]
+
+                if status == "RATE_LIMITED":
+                    # Re-enqueue vanity so it is not skipped or marked as error
+                    self.queue.put(vanity)
+                    with self.lock:
+                        should_start_cooldown = not self.is_rate_limited and not self.stop_requested
+                        if should_start_cooldown:
+                            self.is_rate_limited = True
+                            self.pause_event.clear()
+
+                    if should_start_cooldown:
+                        cooldown_t = threading.Thread(
+                            target=self._run_cooldown,
+                            args=(self.cooldown_duration, vanity),
+                            name="SteamCooldownCoordinator",
+                            daemon=True
+                        )
+                        cooldown_t.start()
+                    continue
 
                 with self.lock:
                     self.checked_count += 1
@@ -239,9 +272,8 @@ class SteamCheckerEngine:
                     time.sleep(self.delay)
 
         with self.lock:
-            # If all workers are finished and queue is empty
-            if self.queue.empty() and self.is_running:
-                # Check if other threads are still alive
+            # If all workers are finished and queue is empty and not waiting in cooldown
+            if self.queue.empty() and self.is_running and not self.is_rate_limited:
                 alive_others = any(t.is_alive() for t in self.workers if t != threading.current_thread())
                 if not alive_others:
                     self.is_running = False
@@ -249,6 +281,45 @@ class SteamCheckerEngine:
                         self._emit_progress()
                     if self.on_finish:
                         self.on_finish()
+
+    def _run_cooldown(self, wait_seconds: int = 60, triggering_vanity: str = "") -> None:
+        """Coordinated cooldown pause across all workers when Steam rate limit is encountered."""
+        if self.on_result:
+            self.on_result({
+                "status": "COOLDOWN_START",
+                "vanity": triggering_vanity,
+                "seconds": wait_seconds,
+                "details": f"Steam rate limit reached. Pausing for {wait_seconds}s cooldown before resuming..."
+            })
+
+        for sec in range(wait_seconds, 0, -1):
+            if self.stop_requested or not self.is_rate_limited:
+                with self.lock:
+                    self.is_rate_limited = False
+                    self.cooldown_remaining = 0
+                return
+
+            with self.lock:
+                self.cooldown_remaining = sec
+            if self.on_progress:
+                self._emit_progress()
+            time.sleep(1.0)
+
+        with self.lock:
+            self.is_rate_limited = False
+            self.cooldown_remaining = 0
+            if not self.is_paused and not self.stop_requested:
+                self.pause_event.set()
+
+        if self.on_result and not self.stop_requested:
+            self.on_result({
+                "status": "COOLDOWN_END",
+                "vanity": "",
+                "details": "Cooldown completed. Resuming checks..."
+            })
+
+        if self.on_progress:
+            self._emit_progress()
 
     def _emit_progress(self) -> None:
         """Emit progress stats snapshot to callback."""
@@ -266,7 +337,9 @@ class SteamCheckerEngine:
             "speed": speed,
             "percent": percent,
             "is_running": self.is_running,
-            "is_paused": self.is_paused
+            "is_paused": self.is_paused,
+            "is_cooldown": self.is_rate_limited,
+            "cooldown_remaining": self.cooldown_remaining
         }
         if self.on_progress:
             self.on_progress(stats)

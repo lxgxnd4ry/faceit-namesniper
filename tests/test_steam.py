@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unit Tests for Steam Vanity / ID Checker Module
 """
 import unittest
@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from database import Database
+from database import Database, SteamDatabase
 from steam_api import SteamAPIClient
 from steam_checker import SteamCheckerEngine
 
@@ -65,11 +65,22 @@ class TestSteamCommunityCheck(unittest.TestCase):
         res = client.check_vanity("unregisteredid")
         self.assertEqual(res["status"], "AVAILABLE")
 
+    @patch("requests.Session.get")
+    def test_rate_limited_429(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 429
+        mock_get.return_value = mock_resp
+
+        client = SteamAPIClient()
+        res = client.check_vanity("ratelimitedname")
+        self.assertEqual(res["status"], "RATE_LIMITED")
+        self.assertEqual(res["vanity"], "ratelimitedname")
+
 class TestSteamDatabase(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
-        self.db_path = Path(self.test_dir) / "test_steam.db"
-        self.db = Database(db_path=self.db_path)
+        self.db_path = Path(self.test_dir) / "test_steam_names.db"
+        self.db = SteamDatabase(db_path=self.db_path)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir, ignore_errors=True)
@@ -102,11 +113,12 @@ class TestSteamCheckerEngine(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
         self.db_path = Path(self.test_dir) / "test_steam_engine.db"
-        self.db = Database(db_path=self.db_path)
+        self.db = SteamDatabase(db_path=self.db_path)
         self.client = SteamAPIClient()
         self.engine = SteamCheckerEngine(api_client=self.client, database=self.db, threads=2)
 
     def tearDown(self):
+        self.engine.stop()
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
     def test_load_names(self):
@@ -114,3 +126,53 @@ class TestSteamCheckerEngine(unittest.TestCase):
         queued = self.engine.load_names(names, skip_checked=True, min_len=3, max_len=32)
         # 'ab' is <3, 'toolong'*10 is >32, 'abc' duplicate -> only 'abc' and 'longervalidname' remain
         self.assertEqual(queued, 2)
+
+    def test_rate_limit_requeues_and_pauses(self):
+        results_received = []
+        def on_result(res):
+            results_received.append(res)
+
+        self.engine.on_result = on_result
+        self.engine.cooldown_duration = 1  # 1 second for fast testing
+
+        # Mock check_vanity to return RATE_LIMITED first time, then AVAILABLE
+        call_count = 0
+        def mock_check(vanity):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return {
+                    "status": "RATE_LIMITED",
+                    "vanity": vanity,
+                    "length": len(vanity),
+                    "steamid64": None,
+                    "profile_url": "",
+                    "details": "Rate limit"
+                }
+            return {
+                "status": "AVAILABLE",
+                "vanity": vanity,
+                "length": len(vanity),
+                "steamid64": None,
+                "profile_url": "",
+                "details": "Free to claim"
+            }
+
+        self.client.check_vanity = mock_check
+        self.engine.load_names(["testvanity"], skip_checked=False)
+        self.engine.start()
+
+        import time
+        # Wait for cooldown to complete and item to be processed
+        time.sleep(2.2)
+        self.engine.stop()
+
+        # Check that testvanity was not lost, cooldown events fired, and result eventually became AVAILABLE
+        cooldown_starts = [r for r in results_received if r.get("status") == "COOLDOWN_START"]
+        cooldown_ends = [r for r in results_received if r.get("status") == "COOLDOWN_END"]
+        available_res = [r for r in results_received if r.get("status") == "AVAILABLE"]
+
+        self.assertTrue(len(cooldown_starts) >= 1)
+        self.assertTrue(len(cooldown_ends) >= 1)
+        self.assertTrue(len(available_res) >= 1)
+        self.assertEqual(available_res[0]["vanity"], "testvanity")

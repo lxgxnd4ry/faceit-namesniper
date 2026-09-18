@@ -1,4 +1,4 @@
-﻿"""
+"""
 Namesniper - Steam Vanity / ID API Client
 Checks availability of custom Steam profile vanity URLs (https://steamcommunity.com/id/<vanity>/).
 Supports public XML inspection and optional Steam Web API resolution,
@@ -89,11 +89,20 @@ class SteamAPIClient:
             try:
                 resp = self.session.get(url, timeout=self.timeout, proxies=proxies)
 
-                if resp.status_code == 429:
-                    sleep_time = (2 ** attempt) + random.uniform(0.5, 1.5)
-                    self.rotate_proxy()
-                    time.sleep(sleep_time)
-                    continue
+                if resp.status_code == 429 or (resp.status_code == 403 and "rate limit" in resp.text.lower()):
+                    if len(self.proxies) > 1 and attempt < retries:
+                        sleep_time = (2 ** attempt) + random.uniform(0.5, 1.5)
+                        self.rotate_proxy()
+                        time.sleep(sleep_time)
+                        continue
+                    return {
+                        "status": "RATE_LIMITED",
+                        "vanity": vanity,
+                        "length": len(vanity),
+                        "steamid64": None,
+                        "profile_url": profile_url,
+                        "details": "Steam rate limit reached (HTTP 429)"
+                    }
 
                 if resp.status_code == 404:
                     return {
@@ -185,11 +194,20 @@ class SteamAPIClient:
             try:
                 resp = self.session.get(STEAM_API_BASE, params=params, timeout=self.timeout, proxies=proxies)
 
-                if resp.status_code == 429:
-                    sleep_time = (2 ** attempt) + random.uniform(0.5, 1.5)
-                    self.rotate_proxy()
-                    time.sleep(sleep_time)
-                    continue
+                if resp.status_code == 429 or (resp.status_code == 403 and "rate limit" in resp.text.lower()):
+                    if len(self.proxies) > 1 and attempt < retries:
+                        sleep_time = (2 ** attempt) + random.uniform(0.5, 1.5)
+                        self.rotate_proxy()
+                        time.sleep(sleep_time)
+                        continue
+                    return {
+                        "status": "RATE_LIMITED",
+                        "vanity": vanity,
+                        "length": len(vanity),
+                        "steamid64": None,
+                        "profile_url": profile_url,
+                        "details": "Steam rate limit reached (HTTP 429)"
+                    }
 
                 if resp.status_code == 200:
                     data = resp.json().get("response", {})

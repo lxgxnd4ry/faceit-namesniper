@@ -8,6 +8,7 @@ build/
 dist/
 release/
 *.spec
+*.exe
 
 # User local configuration & secrets (contains Faceit API keys)
 config.json

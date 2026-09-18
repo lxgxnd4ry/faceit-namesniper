@@ -7,7 +7,7 @@ import datetime
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 from contextlib import contextmanager
-from config import DATABASE_FILE
+from config import DATABASE_FILE, STEAM_DATABASE_FILE
 
 class Database:
     def __init__(self, db_path: Path = DATABASE_FILE):
@@ -46,20 +46,6 @@ class Database:
                 pass
             conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_status ON checked_names(status)
-            """)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS checked_steam_ids (
-                    vanity TEXT PRIMARY KEY COLLATE NOCASE,
-                    status TEXT NOT NULL, -- AVAILABLE, TAKEN, INVALID, ERROR
-                    length INTEGER NOT NULL,
-                    steamid64 TEXT,
-                    profile_url TEXT,
-                    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    details TEXT
-                )
-            """)
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_steam_status ON checked_steam_ids(status)
             """)
             conn.commit()
 
@@ -172,7 +158,79 @@ class Database:
             conn.execute("DELETE FROM checked_names")
             conn.commit()
 
-    # --- Steam ID Methods ---
+    # --- Steam ID Methods (Forwarded to SteamDatabase for backwards compatibility) ---
+
+    def is_steam_already_checked(self, vanity: str) -> bool:
+        """Check if a Steam vanity has already been checked."""
+        return SteamDatabase().is_steam_already_checked(vanity)
+
+    def get_already_checked_steam_set(self) -> set:
+        """Get set of all checked Steam vanities in lowercase."""
+        return SteamDatabase().get_already_checked_steam_set()
+
+    def record_steam_result(
+        self,
+        vanity: str,
+        status: str,
+        length: int,
+        steamid64: Optional[str] = None,
+        profile_url: Optional[str] = None,
+        details: Optional[str] = None
+    ) -> None:
+        """Insert or update a Steam check result."""
+        SteamDatabase().record_steam_result(vanity, status, length, steamid64, profile_url, details)
+
+    def get_all_steam_records(
+        self,
+        limit: int = 500,
+        offset: int = 0,
+        filter_status: Optional[str] = None,
+        search_query: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Fetch Steam check records with optional filtering."""
+        return SteamDatabase().get_all_steam_records(limit, offset, filter_status, search_query)
+
+    def get_steam_stats(self) -> Dict[str, int]:
+        """Get summary statistics of Steam checks."""
+        return SteamDatabase().get_steam_stats()
+
+    def clear_steam_records(self) -> None:
+        """Clear all Steam check records."""
+        SteamDatabase().clear_steam_records()
+
+
+class SteamDatabase:
+    """Dedicated SQLite storage for Steam vanity check records (stored in steam_names.db)."""
+    def __init__(self, db_path: Path = STEAM_DATABASE_FILE):
+        self.db_path = db_path
+        self._init_db()
+
+    @contextmanager
+    def _connection(self):
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        conn.row_factory = sqlite3.Row
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+    def _init_db(self) -> None:
+        with self._connection() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS checked_steam_ids (
+                    vanity TEXT PRIMARY KEY COLLATE NOCASE,
+                    status TEXT NOT NULL, -- AVAILABLE, TAKEN, INVALID, ERROR
+                    length INTEGER NOT NULL,
+                    steamid64 TEXT,
+                    profile_url TEXT,
+                    checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    details TEXT
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_steam_status ON checked_steam_ids(status)
+            """)
+            conn.commit()
 
     def is_steam_already_checked(self, vanity: str) -> bool:
         """Check if a Steam vanity has already been checked."""

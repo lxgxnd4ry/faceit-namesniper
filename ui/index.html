@@ -2279,6 +2279,10 @@
         logSteamFeed(`[TAKEN] ${vanity}`, 'dim');
       } else if (status === 'INVALID') {
         logSteamFeed(`[INVALID] ${vanity}`, 'dim');
+      } else if (status === 'COOLDOWN_START') {
+        logSteamFeed(`[COOLDOWN] Rate limit reached. Pausing for ${res.seconds || 60}s before resuming...`, 'gold');
+      } else if (status === 'COOLDOWN_END') {
+        logSteamFeed(`[RESUMED] Cooldown complete. Continuing search.`, 'cyan');
       } else {
         logSteamFeed(`[ERROR] ${vanity}: ${res.details || ''}`, 'red');
       }
@@ -2289,7 +2293,12 @@
       document.getElementById('stat-steam-checked').innerText = stats.checked;
       document.getElementById('stat-steam-available').innerText = stats.available;
       document.getElementById('stat-steam-taken').innerText = stats.taken;
-      document.getElementById('stat-steam-speed').innerText = `${stats.speed}/s`;
+
+      if (stats.is_cooldown && stats.cooldown_remaining > 0) {
+        document.getElementById('stat-steam-speed').innerText = `WAIT ${stats.cooldown_remaining}s`;
+      } else {
+        document.getElementById('stat-steam-speed').innerText = `${stats.speed}/s`;
+      }
 
       const bar = document.getElementById('steam-progress-bar');
       if (bar) {

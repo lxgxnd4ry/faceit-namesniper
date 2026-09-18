@@ -19,6 +19,7 @@ WORDLISTS_DIR = APP_DIR / "wordlists"
 EXPORTS_DIR = APP_DIR / "exports"
 CONFIG_FILE = APP_DIR / "config.json"
 DATABASE_FILE = APP_DIR / "namesniper.db"
+STEAM_DATABASE_FILE = APP_DIR / "steam_names.db"
 
 # Ensure runtime directories exist
 WORDLISTS_DIR.mkdir(parents=True, exist_ok=True)

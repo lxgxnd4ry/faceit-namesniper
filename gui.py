@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, List
 
 from config import BASE_DIR, RESOURCE_DIR, WORDLISTS_DIR, EXPORTS_DIR, load_config, save_config, get_wordlist_path
-from database import Database
+from database import Database, SteamDatabase
 from faceit_api import FaceitAPIClient
 from generator import NameGenerator
 from checker import CheckerEngine
@@ -20,6 +20,7 @@ class NamesniperAPI:
     def __init__(self):
         self._config = load_config()
         self._database = Database()
+        self._steam_database = SteamDatabase()
         self._api_client = FaceitAPIClient(
             api_keys=self._get_keys_from_config(),
             proxies=self._config.get("proxies", []),
@@ -42,7 +43,7 @@ class NamesniperAPI:
         )
         self._steam_engine = SteamCheckerEngine(
             api_client=self._steam_api_client,
-            database=self._database,
+            database=self._steam_database,
             threads=self._config.get("threads", 3),
             delay_between_requests=self._config.get("delay_between_requests", 0.35),
             save_taken=self._config.get("save_taken", False),
@@ -238,7 +239,7 @@ class NamesniperAPI:
         queued_count = self._steam_engine.load_names(names, skip_checked=skip_checked, min_len=3, max_len=32)
 
         if queued_count == 0:
-            already_in_db = self._database.get_already_checked_steam_set()
+            already_in_db = self._steam_database.get_already_checked_steam_set()
             checked_count = sum(1 for n in names if n.lower() in already_in_db)
             if checked_count > 0:
                 return {
@@ -272,7 +273,7 @@ class NamesniperAPI:
 
     def get_steam_db_records(self, filter_status: str = "ALL", search: str = "", limit: int = 500, offset: int = 0) -> List[Dict[str, Any]]:
         """Fetch checked Steam records from database."""
-        return self._database.get_all_steam_records(
+        return self._steam_database.get_all_steam_records(
             limit=limit,
             offset=offset,
             filter_status=filter_status if filter_status != "ALL" else None,
@@ -281,7 +282,7 @@ class NamesniperAPI:
 
     def clear_steam_db(self) -> Dict[str, Any]:
         """Clear all Steam records in database."""
-        self._database.clear_steam_records()
+        self._steam_database.clear_steam_records()
         return {"success": True}
 
     def resize_window_bounds(self, x: int, y: int, w: int, h: int) -> None:
