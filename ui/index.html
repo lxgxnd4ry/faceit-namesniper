@@ -780,6 +780,22 @@
       opacity: 0.6;
     }
 
+    .skeet-link {
+      color: var(--menu-color);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      transition: color 0.12s, text-shadow 0.12s;
+    }
+
+    .skeet-link:hover {
+      color: #ffffff;
+      text-shadow: 0 0 5px var(--menu-color-glow);
+    }
+
     /* Tags */
     .tag {
       display: inline-block;
@@ -1433,21 +1449,28 @@
                 <span id="api-key-test-result" style="font-size: 11px;"></span>
               </div>
 
-              <!-- Dry API Key Tutorial -->
+              <!-- Faceit API Key Tutorial -->
               <div style="border-top: 1px solid var(--border-inner); padding-top: 8px; margin-top: 8px;">
-                <span style="font-size: 10px; color: var(--text-dim); line-height: 1.4; display: block;">
+                <span style="font-size: 10px; color: var(--text-dim); line-height: 1.5; display: block;">
                   Setup:
-                  <br/>1. developers.faceit.com
+                  <br/>1. <span class="skeet-link" onclick="openExternalUrl('https://developers.faceit.com/')">developers.faceit.com <span class="ext-icon">&#8599;</span></span>
                   <br/>2. App Studio &gt; Create app
                   <br/>3. API Keys &gt; Create Server Side key
                   <br/>4. Paste token above
                 </span>
               </div>
 
-              <!-- Optional Steam API Key -->
+              <!-- Optional Steam API Key & Tutorial -->
               <div style="border-top: 1px solid var(--border-inner); padding-top: 8px; margin-top: 8px;">
                 <span class="control-label" style="display: block; margin-bottom: 4px;">Steam API key (optional)</span>
-                <input type="text" class="skeet-input" id="setting-steam-api-key" placeholder="Key (optional, public XML works without)" />
+                <input type="text" class="skeet-input" id="setting-steam-api-key" placeholder="Key (optional, public XML works without)" style="margin-bottom: 8px;" />
+                <span style="font-size: 10px; color: var(--text-dim); line-height: 1.5; display: block;">
+                  Setup:
+                  <br/>1. <span class="skeet-link" onclick="openExternalUrl('https://steamcommunity.com/dev/apikey')">steamcommunity.com/dev/apikey <span class="ext-icon">&#8599;</span></span>
+                  <br/>2. Log in with Steam account
+                  <br/>3. Enter domain (e.g. localhost) &amp; register
+                  <br/>4. Paste key above (optional, enables API fallback)
+                </span>
               </div>
             </div>
 
@@ -1826,14 +1849,23 @@
     let dbSortAsc = true;
     let dbSearchTimeout = null;
 
-    function openFaceitProfile(nick) {
-      if (!nick) return;
-      const url = `https://www.faceit.com/en/players/${encodeURIComponent(nick)}`;
+    function openExternalUrl(url) {
+      if (!url) return;
       if (window.pywebview && window.pywebview.api && window.pywebview.api.open_url) {
         window.pywebview.api.open_url(url);
       } else {
         window.open(url, '_blank');
       }
+    }
+
+    function openFaceitProfile(nick) {
+      if (!nick) return;
+      openExternalUrl(`https://www.faceit.com/en/players/${encodeURIComponent(nick)}`);
+    }
+
+    function openSteamProfile(vanity) {
+      if (!vanity) return;
+      openExternalUrl(`https://steamcommunity.com/id/${encodeURIComponent(vanity)}/`);
     }
 
     function escapeHtml(str) {

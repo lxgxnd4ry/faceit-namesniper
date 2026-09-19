@@ -1,4 +1,4 @@
-﻿# Namesniper
+# Namesniper
 
 Fully vibecoded multi-threaded Faceit username availability checker and account scanner.
 ![GUI IMAGE](https://github.com/lxgxnd4ry/faceit-namesniper/blob/main/gui.png)
@@ -110,6 +110,17 @@ Faceit Data API access requires a free developer key:
 4. Open Namesniper Settings, paste the key into the input field, and save.
 
 Multiple keys can be supplied as comma-separated values to enable round-robin rotation across workers.
+
+---
+
+## Steam API Key Setup (Optional)
+
+The Steam vanity checker operates via public XML profiles by default without an API key. For higher rate limit resilience and API resolution fallback, a free key can be registered:
+
+1. Sign in to the [Steam Community Developer Key Registration](https://steamcommunity.com/dev/apikey).
+2. Enter any domain name (e.g., `localhost` or `namesniper`).
+3. Agree to the terms and click **Register**.
+4. Paste the Web API key into Namesniper Settings > Steam API key.
 
 ---
 
