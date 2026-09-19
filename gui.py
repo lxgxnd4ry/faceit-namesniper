@@ -213,7 +213,8 @@ class NamesniperAPI:
 
         # 4. Start engine
         self._engine.start()
-        return {"success": True, "queued": queued_count}
+        skipped_count = getattr(self._engine, "skipped_db_count", 0)
+        return {"success": True, "queued": queued_count, "skipped": skipped_count}
 
     def pause_checker(self) -> Dict[str, Any]:
         """Toggle pause/resume."""
@@ -253,7 +254,8 @@ class NamesniperAPI:
             return {"success": False, "error": "None of the names match Steam vanity criteria (3-32 characters)."}
 
         self._steam_engine.start()
-        return {"success": True, "queued": queued_count}
+        skipped_count = getattr(self._steam_engine, "skipped_db_count", 0)
+        return {"success": True, "queued": queued_count, "skipped": skipped_count}
 
     def pause_steam_checker(self) -> Dict[str, Any]:
         """Toggle pause/resume for Steam checker."""

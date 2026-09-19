@@ -1876,7 +1876,11 @@
           resetButtons();
           return;
         }
-        logFeed(`Loaded ${res.queued} names.`, 'dim');
+        if (res.skipped && res.skipped > 0) {
+          logFeed(`Loaded ${res.queued} names (${res.skipped} skipped from DB cache).`, 'dim');
+        } else {
+          logFeed(`Loaded ${res.queued} names.`, 'dim');
+        }
       } catch (err) {
         logFeed(`Error: ${err}`, 'red');
         resetButtons();
@@ -2132,7 +2136,11 @@
         logSteamFeed(`Error: ${res.error}`, 'red');
         resetSteamButtons();
       } else {
-        logSteamFeed(`Queued ${res.queued} Steam IDs.`, 'green');
+        if (res.skipped && res.skipped > 0) {
+          logSteamFeed(`Queued ${res.queued} Steam IDs (${res.skipped} skipped from DB cache).`, 'green');
+        } else {
+          logSteamFeed(`Queued ${res.queued} Steam IDs.`, 'green');
+        }
       }
     }
 

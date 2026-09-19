@@ -185,3 +185,70 @@ class TestSteamCheckerEngine(unittest.TestCase):
         self.assertTrue(len(cooldown_ends) >= 1)
         self.assertTrue(len(available_res) >= 1)
         self.assertEqual(available_res[0]["vanity"], "testvanity")
+
+    def test_database_duplicate_skip(self):
+        def mock_check(vanity):
+            if vanity == "takename":
+                return {
+                    "status": "TAKEN",
+                    "vanity": vanity,
+                    "length": len(vanity),
+                    "steamid64": "76561198000000001",
+                    "profile_url": f"https://steamcommunity.com/id/{vanity}/",
+                    "details": "Profile active"
+                }
+            elif vanity == "availname":
+                return {
+                    "status": "AVAILABLE",
+                    "vanity": vanity,
+                    "length": len(vanity),
+                    "steamid64": None,
+                    "profile_url": f"https://steamcommunity.com/id/{vanity}/",
+                    "details": "Free to claim"
+                }
+            return {
+                "status": "AVAILABLE",
+                "vanity": vanity,
+                "length": len(vanity),
+                "steamid64": None,
+                "profile_url": f"https://steamcommunity.com/id/{vanity}/",
+                "details": "Free to claim"
+            }
+
+        self.client.check_vanity = mock_check
+        self.engine.delay = 0.01
+
+        # Run 1: Check both names
+        queued = self.engine.load_names(["takename", "availname"], skip_checked=True)
+        self.assertEqual(queued, 2)
+        self.assertEqual(self.engine.skipped_db_count, 0)
+        self.engine.start()
+
+        import time
+        max_wait = 3.0
+        start = time.time()
+        while (self.engine.checked_count < 2) and (time.time() - start < max_wait):
+            time.sleep(0.05)
+        self.engine.stop()
+
+        self.assertEqual(self.engine.checked_count, 2)
+        self.assertEqual(self.engine.available_count, 1)
+        self.assertEqual(self.engine.taken_count, 1)
+
+        # Verify DB recorded both TAKEN and AVAILABLE
+        checked_set = self.db.get_already_checked_steam_set()
+        self.assertIn("takename", checked_set)
+        self.assertIn("availname", checked_set)
+        self.assertTrue(self.db.is_steam_already_checked("takename"))
+        self.assertTrue(self.db.is_steam_already_checked("availname"))
+
+        # Run 2: Load same names plus a fresh one with skip_checked=True
+        queued2 = self.engine.load_names(["takename", "availname", "freshname"], skip_checked=True)
+        self.assertEqual(queued2, 1)
+        self.assertEqual(self.engine.skipped_db_count, 2)
+
+        # Run 3: Load same names with bypass cache (skip_checked=False)
+        queued3 = self.engine.load_names(["takename", "availname", "freshname"], skip_checked=False)
+        self.assertEqual(queued3, 3)
+        self.assertEqual(self.engine.skipped_db_count, 0)
+

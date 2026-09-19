@@ -61,6 +61,8 @@ class SteamCheckerEngine:
         self.invalid_count = 0
         self.error_count = 0
         self.start_time: Optional[float] = None
+        self.skip_checked = True
+        self.skipped_db_count = 0
 
         # Files
         self.available_txt = EXPORTS_DIR / "steam_available_names.txt"
@@ -107,8 +109,10 @@ class SteamCheckerEngine:
         with self.queue.mutex:
             self.queue.queue.clear()
 
+        self.skip_checked = skip_checked
         already_checked = self.database.get_already_checked_steam_set() if skip_checked else set()
         loaded = 0
+        skipped_db = 0
         seen = set()
 
         for name in names:
@@ -124,6 +128,7 @@ class SteamCheckerEngine:
                 continue
 
             if skip_checked and lower_clean in already_checked:
+                skipped_db += 1
                 continue
 
             self.queue.put(clean)
@@ -135,6 +140,7 @@ class SteamCheckerEngine:
         self.taken_count = 0
         self.invalid_count = 0
         self.error_count = 0
+        self.skipped_db_count = skipped_db
         self.is_rate_limited = False
         self.cooldown_remaining = 0
         return loaded
@@ -195,6 +201,12 @@ class SteamCheckerEngine:
             except queue.Empty:
                 break
 
+            if self.skip_checked and self.database.is_steam_already_checked(vanity):
+                with self.lock:
+                    self.skipped_db_count += 1
+                self.queue.task_done()
+                continue
+
             try:
                 result = self.api_client.check_vanity(vanity)
                 status = result["status"]
@@ -222,30 +234,23 @@ class SteamCheckerEngine:
                     self.checked_count += 1
                     if status == "AVAILABLE":
                         self.available_count += 1
-                        self.database.record_steam_result(
-                            vanity=result["vanity"],
-                            status=status,
-                            length=result["length"],
-                            steamid64=result.get("steamid64"),
-                            profile_url=result.get("profile_url"),
-                            details=result.get("details")
-                        )
                         self._append_to_exports(result)
                     elif status == "TAKEN":
                         self.taken_count += 1
-                        if self.save_taken:
-                            self.database.record_steam_result(
-                                vanity=result["vanity"],
-                                status=status,
-                                length=result["length"],
-                                steamid64=result.get("steamid64"),
-                                profile_url=result.get("profile_url"),
-                                details=result.get("details")
-                            )
                     elif status == "INVALID":
                         self.invalid_count += 1
                     else:
                         self.error_count += 1
+
+                    if status in ("AVAILABLE", "TAKEN", "INVALID"):
+                        self.database.record_steam_result(
+                            vanity=result["vanity"],
+                            status=status,
+                            length=result.get("length", len(result["vanity"])),
+                            steamid64=result.get("steamid64"),
+                            profile_url=result.get("profile_url"),
+                            details=result.get("details")
+                        )
 
                 # Notify GUI
                 if self.on_result:
@@ -334,6 +339,7 @@ class SteamCheckerEngine:
             "taken": self.taken_count,
             "invalid": self.invalid_count,
             "errors": self.error_count,
+            "skipped_db": self.skipped_db_count,
             "speed": speed,
             "percent": percent,
             "is_running": self.is_running,

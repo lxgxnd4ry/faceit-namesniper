@@ -61,6 +61,8 @@ class CheckerEngine:
         self.invalid_count = 0
         self.error_count = 0
         self.start_time: Optional[float] = None
+        self.skip_checked = True
+        self.skipped_db_count = 0
 
         # Files
         self.available_txt = EXPORTS_DIR / "available_names.txt"
@@ -110,6 +112,7 @@ class CheckerEngine:
         """
         seen = set()
         clean_names = []
+        skipped_db = 0
         
         already_checked = self.database.get_already_checked_set() if skip_checked else set()
 
@@ -121,6 +124,7 @@ class CheckerEngine:
             if name_lower in seen:
                 continue
             if skip_checked and name_lower in already_checked:
+                skipped_db += 1
                 continue
             if not (min_len <= len(name) <= max_len):
                 continue
@@ -147,6 +151,8 @@ class CheckerEngine:
             self.taken_count = 0
             self.invalid_count = 0
             self.error_count = 0
+            self.skip_checked = skip_checked
+            self.skipped_db_count = skipped_db
 
         return len(clean_names)
 
@@ -203,6 +209,12 @@ class CheckerEngine:
             except queue.Empty:
                 # No more names in queue
                 break
+
+            if self.skip_checked and self.database.is_already_checked(nickname):
+                with self.lock:
+                    self.skipped_db_count += 1
+                self.queue.task_done()
+                continue
 
             try:
                 result = self.api_client.check_nickname(nickname)
@@ -294,6 +306,7 @@ class CheckerEngine:
                 "taken": self.taken_count,
                 "invalid": self.invalid_count,
                 "errors": self.error_count,
+                "skipped_db": self.skipped_db_count,
                 "elapsed_seconds": round(elapsed, 1),
                 "speed_per_sec": round(speed, 2),
                 "eta_seconds": int(eta_seconds),
