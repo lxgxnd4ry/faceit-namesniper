@@ -955,7 +955,7 @@
   <div class="skeet-window">
     <!-- Custom Frameless Titlebar -->
     <div class="skeet-titlebar pywebview-drag-region">
-      <div class="skeet-title-text pywebview-drag-region">namesniper</div>
+      <div class="skeet-title-text pywebview-drag-region">namesniper v1.2.0</div>
       <div class="skeet-window-controls" onmousedown="event.stopPropagation()">
         <button class="win-btn" onclick="minimizeWindow()" title="Minimize">_</button>
         <button class="win-btn close" onclick="closeWindow()" title="Close">&#10005;</button>
@@ -2627,7 +2627,7 @@
 
       const countEl = document.getElementById('db-record-count');
       if (countEl) {
-        countEl.innerText = `${currentDbRecords ? currentDbRecords.length : 0} records`;
+        countEl.innerText = `${currentDbRecords ? currentDbRecords.length.toLocaleString() : 0} records`;
       }
 
       const colSpan = currentDbTarget === 'steam' ? 7 : 9;

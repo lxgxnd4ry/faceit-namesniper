@@ -1,33 +1,40 @@
 # Namesniper
 
-Fully vibecoded multi-threaded Faceit username availability checker and account scanner.
+Fully vibecoded multi-threaded Faceit and Steam username availability checker and account scanner.
 ![GUI IMAGE](https://github.com/lxgxnd4ry/faceit-namesniper/blob/main/gui.png)
-Provides a frameless desktop GUI and an interactive terminal CLI for discovering available usernames and claimable idle accounts on Faceit.
+Provides a frameless desktop GUI and an interactive terminal CLI for discovering available usernames and claimable idle accounts on Faceit, as well as checking custom Steam IDs and vanity URLs.
 
 ---
 
 ## Capabilities
 
-- **Status Detection**:
+- **Faceit Checker**:
   - `AVAILABLE`: Name is unregistered and available for immediate registration (HTTP 404).
   - `CLAIMABLE (IDLE)`: Registered account with 0 matches or inactive history eligible for release under Faceit idle policy.
   - `TAKEN`: Active account with game statistics, ELO, and registration date.
-- **Wordlists**:
+- **Steam Vanity ID Checker**:
+  - High-speed Steam profile XML & Web API vanity resolver.
+  - Detects `AVAILABLE`, `TAKEN` (with SteamID64 extraction), and `INVALID` identifiers.
+  - Intelligent rate-limiting backoff and auto-resumption on HTTP 429.
+  - Automatic duplicate skipping against database.
+- **Wordlists & Generator Bases**:
   - Handpicked single-word gaming terms (`og_cool_words.txt`).
   - Short 3-letter combinations (`short_3l.txt`).
   - Short 4-letter words (`short_4l.txt`).
   - English vocabulary subset (`dictionary_words.txt`).
-- **Algorithmic Generator**:
+  - 3-character and 4-character alphanumeric combinations (`a-z`, `0-9`).
+  - 3-character and 4-character mixed letter/digit combinations.
   - Pronounceable 3-letter (CVC) and 4-letter (CVCV) generation.
   - Compound handle generation.
-  - Custom pattern templates (`C`=consonant, `V`=vowel, `L`=letter, `D`=digit).
+  - Random leet language substitution (with adjustable 1–5 slider).
 - **Concurrency & Rate Limiting**:
-  - Configurable worker threads (default: 3).
+  - Configurable worker threads.
   - Adaptive rate limiter with exponential backoff on HTTP 429.
   - Multi-key rotation support.
   - HTTP and SOCKS5 proxy support.
 - **Data & Exporting**:
-  - SQLite cache (`namesniper.db`) prevents duplicate lookups.
+  - Separate SQLite databases (`namesniper.db` and `steam_names.db`).
+  - Full database browser with status filtering, instant search, and column sorting.
   - Automatic real-time output to `exports/available_names.txt` and `exports/available_names.csv`.
 
 ---
@@ -36,7 +43,7 @@ Provides a frameless desktop GUI and an interactive terminal CLI for discovering
 
 Pre-built binaries for Windows 64-bit are published under GitHub Releases:
 
-1. Download `Namesniper-v1.0.0-windows-x64.zip`.
+1. Download `Namesniper-v1.2.0-windows-x64.zip`.
 2. Extract the archive.
 3. Run `Namesniper.exe`.
 

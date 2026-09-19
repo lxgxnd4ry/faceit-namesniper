@@ -142,11 +142,11 @@ class NamesniperAPI:
 
         return {"words": words}
 
-    def get_db_records(self, filter_status: str = "ALL", search: str = "") -> List[Dict[str, Any]]:
+    def get_db_records(self, filter_status: str = "ALL", search: str = "", limit: Any = None) -> List[Dict[str, Any]]:
         """Fetch results stored in SQLite database."""
         return self._database.get_results(
             status_filter=filter_status if filter_status != "ALL" else None,
-            limit=500,
+            limit=limit,
             search_query=search.strip() if search.strip() else None
         )
 
@@ -315,7 +315,7 @@ class NamesniperAPI:
         if clean:
             self.open_url(f"https://steamcommunity.com/id/{clean}/")
 
-    def get_steam_db_records(self, filter_status: str = "ALL", search: str = "", limit: int = 500, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_steam_db_records(self, filter_status: str = "ALL", search: str = "", limit: Any = None, offset: int = 0) -> List[Dict[str, Any]]:
         """Fetch checked Steam records from database."""
         return self._steam_database.get_all_steam_records(
             limit=limit,

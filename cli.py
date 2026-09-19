@@ -17,7 +17,7 @@ except ImportError:
     class Style:
         BRIGHT = DIM = RESET_ALL = ""
 
-from config import WORDLISTS_DIR, EXPORTS_DIR, load_config, save_config, get_wordlist_path
+from config import WORDLISTS_DIR, EXPORTS_DIR, VERSION, load_config, save_config, get_wordlist_path
 from database import Database
 from faceit_api import FaceitAPIClient
 from generator import NameGenerator
@@ -38,7 +38,8 @@ def print_banner():
     print(BANNER)
 
 def run_cli():
-    parser = argparse.ArgumentParser(description="Namesniper - High-Speed Faceit Username Checker")
+    parser = argparse.ArgumentParser(description=f"Namesniper v{VERSION} - High-Speed Faceit & Steam Username Checker")
+    parser.add_argument("-v", "--version", action="version", version=f"Namesniper v{VERSION}")
     parser.add_argument("-w", "--wordlist", type=str, help="Wordlist name or file path ('og', '3l', '4l', 'dict', or path to .txt)")
     parser.add_argument("-g", "--generate", type=str, choices=["3l", "4l", "3_alnum", "4_alnum", "3_mixed", "4_mixed", "compound"], help="Algorithmically generate names")
     parser.add_argument("--leet", action="store_true", help="Randomly insert leet language into names")

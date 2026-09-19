@@ -118,6 +118,12 @@ class TestSteamDatabase(unittest.TestCase):
         self.db.clear_steam_records()
         self.assertEqual(len(self.db.get_all_steam_records()), 0)
 
+    def test_steam_database_over_500_records(self):
+        for i in range(600):
+            self.db.record_steam_result(vanity=f"v_{i:04d}", status="AVAILABLE", length=6)
+        records = self.db.get_all_steam_records()
+        self.assertEqual(len(records), 600)
+
 class TestSteamCheckerEngine(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()

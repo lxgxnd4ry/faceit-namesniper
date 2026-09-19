@@ -7,6 +7,8 @@ import json
 import shutil
 from pathlib import Path
 
+VERSION = "1.2.0"
+
 if getattr(sys, "frozen", False):
     RESOURCE_DIR = Path(sys._MEIPASS)
     APP_DIR = Path(sys.executable).resolve().parent

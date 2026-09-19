@@ -167,6 +167,12 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(len(res_filtered), 1)
         self.assertEqual(res_filtered[0]["nickname"], "alpha")
 
+    def test_database_over_500_records(self):
+        for i in range(600):
+            self.db.record_result(nickname=f"user_{i:04d}", status="AVAILABLE", length=9)
+        results = self.db.get_results("AVAILABLE")
+        self.assertEqual(len(results), 600)
+
 class TestCheckerEngine(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()

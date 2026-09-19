@@ -113,10 +113,10 @@ class Database:
     def get_results(
         self,
         status_filter: Optional[str] = None,
-        limit: int = 500,
+        limit: Optional[int] = None,
         search_query: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Retrieve recent results filtered by status and optional search query if provided."""
+        """Retrieve results filtered by status and optional search query if provided."""
         query = "SELECT * FROM checked_names WHERE 1=1"
         params = []
 
@@ -128,8 +128,10 @@ class Database:
             query += " AND nickname LIKE ?"
             params.append(f"%{search_query}%")
 
-        query += " ORDER BY checked_at DESC LIMIT ?"
-        params.append(limit)
+        query += " ORDER BY checked_at DESC"
+        if limit is not None and limit > 0:
+            query += " LIMIT ?"
+            params.append(limit)
 
         with self._connection() as conn:
             cursor = conn.execute(query, tuple(params))
@@ -188,7 +190,7 @@ class Database:
 
     def get_all_steam_records(
         self,
-        limit: int = 500,
+        limit: Optional[int] = None,
         offset: int = 0,
         filter_status: Optional[str] = None,
         search_query: Optional[str] = None
@@ -280,7 +282,7 @@ class SteamDatabase:
 
     def get_all_steam_records(
         self,
-        limit: int = 500,
+        limit: Optional[int] = None,
         offset: int = 0,
         filter_status: Optional[str] = None,
         search_query: Optional[str] = None
@@ -297,8 +299,13 @@ class SteamDatabase:
             query += " AND vanity LIKE ?"
             params.append(f"%{search_query}%")
 
-        query += " ORDER BY checked_at DESC LIMIT ? OFFSET ?"
-        params.extend([limit, offset])
+        query += " ORDER BY checked_at DESC"
+        if limit is not None and limit > 0:
+            query += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+        elif offset > 0:
+            query += " LIMIT -1 OFFSET ?"
+            params.append(offset)
 
         with self._connection() as conn:
             cursor = conn.execute(query, tuple(params))
