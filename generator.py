@@ -12,6 +12,19 @@ VOWELS = "aeiou"
 ALL_LETTERS = "abcdefghijklmnopqrstuvwxyz"
 DIGITS = "0123456789"
 
+LEET_MAP = {
+    'a': '4',
+    'b': '8',
+    'e': '3',
+    'g': '9',
+    'i': '1',
+    'l': '1',
+    'o': '0',
+    's': '5',
+    't': '7',
+    'z': '2'
+}
+
 COOL_PREFIXES = [
     "neo", "zen", "vox", "hex", "arc", "sol", "nox", "lux", "vex", "syn",
     "hyper", "cyber", "omni", "meta", "ultra", "chron", "aero", "cryo",
@@ -142,3 +155,106 @@ class NameGenerator:
                 results.add(name.lower())
 
         return list(results)[:count]
+
+    @staticmethod
+    def generate_3_alnum(limit: int = 1500, shuffle: bool = True) -> List[str]:
+        """Generate 3-character strings of letters and numbers (a-z, 0-9)."""
+        chars = ALL_LETTERS + DIGITS
+        if limit <= 0 or limit >= 46656:
+            names = [''.join(p) for p in itertools.product(chars, repeat=3)]
+        else:
+            names_set = set()
+            attempts = 0
+            while len(names_set) < limit and attempts < limit * 10:
+                attempts += 1
+                names_set.add(''.join(random.choices(chars, k=3)))
+            names = list(names_set)
+        if shuffle:
+            random.shuffle(names)
+        return names[:limit] if limit > 0 else names
+
+    @staticmethod
+    def generate_4_alnum(limit: int = 2000, shuffle: bool = True) -> List[str]:
+        """Generate 4-character strings of letters and numbers (a-z, 0-9)."""
+        chars = ALL_LETTERS + DIGITS
+        names_set = set()
+        attempts = 0
+        while len(names_set) < limit and attempts < limit * 10:
+            attempts += 1
+            names_set.add(''.join(random.choices(chars, k=4)))
+        names = list(names_set)
+        if shuffle:
+            random.shuffle(names)
+        return names[:limit]
+
+    @staticmethod
+    def generate_3_mixed(limit: int = 1500, shuffle: bool = True) -> List[str]:
+        """Generate 3-character strings containing both letters and numbers."""
+        chars = ALL_LETTERS + DIGITS
+        names_set = set()
+        attempts = 0
+        while len(names_set) < limit and attempts < limit * 15:
+            attempts += 1
+            s = ''.join(random.choices(chars, k=3))
+            if any(c.isalpha() for c in s) and any(c.isdigit() for c in s):
+                names_set.add(s)
+        names = list(names_set)
+        if shuffle:
+            random.shuffle(names)
+        return names[:limit]
+
+    @staticmethod
+    def generate_4_mixed(limit: int = 2000, shuffle: bool = True) -> List[str]:
+        """Generate 4-character strings containing both letters and numbers."""
+        chars = ALL_LETTERS + DIGITS
+        names_set = set()
+        attempts = 0
+        while len(names_set) < limit and attempts < limit * 15:
+            attempts += 1
+            s = ''.join(random.choices(chars, k=4))
+            if any(c.isalpha() for c in s) and any(c.isdigit() for c in s):
+                names_set.add(s)
+        names = list(names_set)
+        if shuffle:
+            random.shuffle(names)
+        return names[:limit]
+
+    @staticmethod
+    def apply_leet(word: str, amount: int = 1) -> str:
+        """
+        Randomly substitute between 1 and `amount` characters in `word`
+        with valid alphanumeric leetspeak equivalents (e.g. e->3, a->4, o->0, s->5, t->7).
+        """
+        if not word or amount <= 0:
+            return word
+
+        chars = list(word)
+        candidates = [i for i, c in enumerate(chars) if c.lower() in LEET_MAP]
+
+        if not candidates:
+            return word
+
+        count = min(len(candidates), max(1, amount))
+        if amount > 1 and len(candidates) > 1:
+            count = random.randint(1, min(amount, len(candidates)))
+
+        chosen_indices = random.sample(candidates, count)
+        for idx in chosen_indices:
+            orig = chars[idx].lower()
+            chars[idx] = LEET_MAP[orig]
+
+        return "".join(chars)
+
+    @staticmethod
+    def apply_leet_to_list(names: List[str], amount: int = 1) -> List[str]:
+        """Apply random leetspeak to a list of usernames while preserving uniqueness and order."""
+        result = []
+        seen = set()
+        for name in names:
+            leet_name = NameGenerator.apply_leet(name, amount=amount)
+            clean = leet_name.strip()
+            lower = clean.lower()
+            if clean and lower not in seen:
+                seen.add(lower)
+                result.append(clean)
+        return result

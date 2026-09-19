@@ -125,6 +125,14 @@ class NamesniperAPI:
             words = NameGenerator.generate_3l_pronounceable(limit=count)
         elif mode == "4l_cvcv":
             words = NameGenerator.generate_4l_pronounceable(limit=count)
+        elif mode == "3_alnum":
+            words = NameGenerator.generate_3_alnum(limit=count)
+        elif mode == "4_alnum":
+            words = NameGenerator.generate_4_alnum(limit=count)
+        elif mode == "3_mixed":
+            words = NameGenerator.generate_3_mixed(limit=count)
+        elif mode == "4_mixed":
+            words = NameGenerator.generate_4_mixed(limit=count)
         elif mode == "compound":
             words = NameGenerator.generate_compound_words(count=count)
         elif mode == "custom_pattern":
@@ -172,6 +180,14 @@ class NamesniperAPI:
             names = NameGenerator.generate_3l_pronounceable(limit=1000)
         elif source == "gen_4l":
             names = NameGenerator.generate_4l_pronounceable(limit=1500)
+        elif source == "gen_3_alnum":
+            names = NameGenerator.generate_3_alnum(limit=1500)
+        elif source == "gen_4_alnum":
+            names = NameGenerator.generate_4_alnum(limit=2000)
+        elif source == "gen_3_mixed":
+            names = NameGenerator.generate_3_mixed(limit=1500)
+        elif source == "gen_4_mixed":
+            names = NameGenerator.generate_4_mixed(limit=2000)
         elif source == "gen_gaming":
             names = NameGenerator.generate_compound_words(count=800)
         else:
@@ -181,7 +197,14 @@ class NamesniperAPI:
                     names = [line.strip() for line in f if line.strip()]
         return names
 
-    def start_checker(self, source: str, custom_text: str = "", force_recheck: bool = False) -> Dict[str, Any]:
+    def start_checker(
+        self,
+        source: str,
+        custom_text: str = "",
+        force_recheck: bool = False,
+        apply_leet: bool = False,
+        leet_amount: int = 1
+    ) -> Dict[str, Any]:
         """Start the checker engine with selected source."""
         # 1. Ensure active API key is set
         keys = self._get_keys_from_config()
@@ -194,6 +217,9 @@ class NamesniperAPI:
         names = self._collect_names_for_source(source, custom_text)
         if not names:
             return {"success": False, "error": "No valid names found in the selected source."}
+
+        if apply_leet:
+            names = NameGenerator.apply_leet_to_list(names, amount=max(1, min(int(leet_amount), 5)))
 
         # 3. Load names into queue
         skip_checked = False if force_recheck else self._config.get("skip_already_checked", True)
@@ -230,7 +256,16 @@ class NamesniperAPI:
         self._engine.stop()
         return {"success": True}
 
-    def start_steam_checker(self, source: str, custom_text: str = "", force_recheck: bool = False, threads: int = 3, delay: float = 0.35) -> Dict[str, Any]:
+    def start_steam_checker(
+        self,
+        source: str,
+        custom_text: str = "",
+        force_recheck: bool = False,
+        threads: int = 3,
+        delay: float = 0.35,
+        apply_leet: bool = False,
+        leet_amount: int = 1
+    ) -> Dict[str, Any]:
         """Start Steam vanity checker engine."""
         self._steam_engine.num_threads = max(1, min(int(threads), 10))
         self._steam_engine.delay = max(0.05, float(delay))
@@ -239,6 +274,9 @@ class NamesniperAPI:
         names = self._collect_names_for_source(source, custom_text)
         if not names:
             return {"success": False, "error": "No valid names found in the selected source."}
+
+        if apply_leet:
+            names = NameGenerator.apply_leet_to_list(names, amount=max(1, min(int(leet_amount), 5)))
 
         skip_checked = False if force_recheck else self._config.get("skip_already_checked", True)
         queued_count = self._steam_engine.load_names(names, skip_checked=skip_checked, min_len=3, max_len=32)

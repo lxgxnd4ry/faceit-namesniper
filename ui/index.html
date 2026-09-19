@@ -1063,6 +1063,10 @@
                       <div class="skeet-dropdown-item" data-val="short_3l.txt" onclick="selectDropdown('dd-source', 'short_3l.txt', 'Short 3L (1054)')">Short 3L (1054)</div>
                       <div class="skeet-dropdown-item" data-val="short_4l.txt" onclick="selectDropdown('dd-source', 'short_4l.txt', 'Short 4L (1440)')">Short 4L (1440)</div>
                       <div class="skeet-dropdown-item" data-val="dictionary_words.txt" onclick="selectDropdown('dd-source', 'dictionary_words.txt', 'Dictionary (2244)')">Dictionary (2244)</div>
+                      <div class="skeet-dropdown-item" data-val="gen_3_alnum" onclick="selectDropdown('dd-source', 'gen_3_alnum', '3-char letters &amp; numbers')">3-char letters &amp; numbers</div>
+                      <div class="skeet-dropdown-item" data-val="gen_4_alnum" onclick="selectDropdown('dd-source', 'gen_4_alnum', '4-char letters &amp; numbers')">4-char letters &amp; numbers</div>
+                      <div class="skeet-dropdown-item" data-val="gen_3_mixed" onclick="selectDropdown('dd-source', 'gen_3_mixed', '3-char mixed (A-Z + 0-9)')">3-char mixed (A-Z + 0-9)</div>
+                      <div class="skeet-dropdown-item" data-val="gen_4_mixed" onclick="selectDropdown('dd-source', 'gen_4_mixed', '4-char mixed (A-Z + 0-9)')">4-char mixed (A-Z + 0-9)</div>
                       <div class="skeet-dropdown-item" data-val="gen_3l" onclick="selectDropdown('dd-source', 'gen_3l', '3L pronounceable')">3L pronounceable</div>
                       <div class="skeet-dropdown-item" data-val="gen_4l" onclick="selectDropdown('dd-source', 'gen_4l', '4L pronounceable')">4L pronounceable</div>
                       <div class="skeet-dropdown-item" data-val="gen_gaming" onclick="selectDropdown('dd-source', 'gen_gaming', 'Compound words')">Compound words</div>
@@ -1084,11 +1088,33 @@
                   </label>
                 </div>
 
-                <div class="control-row" style="margin-bottom: 12px;">
+                <div class="control-row" style="margin-bottom: 5px;">
                   <label class="skeet-checkbox-label">
                     <input type="checkbox" id="check-detect-idle-dash" checked />
                     <span>Detect idle accounts</span>
                   </label>
+                </div>
+
+                <div class="control-row" style="margin-bottom: 5px;">
+                  <label class="skeet-checkbox-label">
+                    <input type="checkbox" id="check-leet" onchange="toggleLeetSlider('leet-slider-wrap', this.checked)" />
+                    <span>Random leet language</span>
+                  </label>
+                </div>
+
+                <!-- Leet Amount Slider (1 to 5) -->
+                <div id="leet-slider-wrap" class="skeet-slider-container" style="display: none; margin-bottom: 9px; margin-top: 4px;">
+                  <div class="skeet-slider-header">
+                    <span class="control-label">Leet amount</span>
+                  </div>
+                  <div class="skeet-slider-row">
+                    <button class="skeet-stepper-btn" onclick="stepSlider('setting-leet-amount', -1)">-</button>
+                    <div class="skeet-slider-track-wrap">
+                      <input type="range" class="skeet-slider" id="setting-leet-amount" min="1" max="5" step="1" value="2" oninput="updateSliderTrack(this, 'leet-amount-val', '')" />
+                      <span class="skeet-slider-text-on-track" id="leet-amount-val">2</span>
+                    </div>
+                    <button class="skeet-stepper-btn" onclick="stepSlider('setting-leet-amount', 1)">+</button>
+                  </div>
                 </div>
 
                 <!-- Buttons -->
@@ -1200,6 +1226,10 @@
                       <div class="skeet-dropdown-item" data-val="short_3l.txt" onclick="selectDropdown('dd-steam-source', 'short_3l.txt', 'Short 3L (1054)')">Short 3L (1054)</div>
                       <div class="skeet-dropdown-item" data-val="short_4l.txt" onclick="selectDropdown('dd-steam-source', 'short_4l.txt', 'Short 4L (1440)')">Short 4L (1440)</div>
                       <div class="skeet-dropdown-item" data-val="dictionary_words.txt" onclick="selectDropdown('dd-steam-source', 'dictionary_words.txt', 'Dictionary (2244)')">Dictionary (2244)</div>
+                      <div class="skeet-dropdown-item" data-val="gen_3_alnum" onclick="selectDropdown('dd-steam-source', 'gen_3_alnum', '3-char letters &amp; numbers')">3-char letters &amp; numbers</div>
+                      <div class="skeet-dropdown-item" data-val="gen_4_alnum" onclick="selectDropdown('dd-steam-source', 'gen_4_alnum', '4-char letters &amp; numbers')">4-char letters &amp; numbers</div>
+                      <div class="skeet-dropdown-item" data-val="gen_3_mixed" onclick="selectDropdown('dd-steam-source', 'gen_3_mixed', '3-char mixed (A-Z + 0-9)')">3-char mixed (A-Z + 0-9)</div>
+                      <div class="skeet-dropdown-item" data-val="gen_4_mixed" onclick="selectDropdown('dd-steam-source', 'gen_4_mixed', '4-char mixed (A-Z + 0-9)')">4-char mixed (A-Z + 0-9)</div>
                       <div class="skeet-dropdown-item" data-val="gen_3l" onclick="selectDropdown('dd-steam-source', 'gen_3l', '3L pronounceable')">3L pronounceable</div>
                       <div class="skeet-dropdown-item" data-val="gen_4l" onclick="selectDropdown('dd-steam-source', 'gen_4l', '4L pronounceable')">4L pronounceable</div>
                       <div class="skeet-dropdown-item" data-val="gen_gaming" onclick="selectDropdown('dd-steam-source', 'gen_gaming', 'Compound words')">Compound words</div>
@@ -1214,11 +1244,33 @@
                   <textarea class="skeet-textarea" id="custom-steam-names-textarea" placeholder="Vanity IDs (one per line)..."></textarea>
                 </div>
 
-                <div class="control-row" style="margin-bottom: 9px;">
+                <div class="control-row" style="margin-bottom: 5px;">
                   <label class="skeet-checkbox-label">
                     <input type="checkbox" id="check-steam-force-recheck" />
                     <span>Bypass DB cache</span>
                   </label>
+                </div>
+
+                <div class="control-row" style="margin-bottom: 5px;">
+                  <label class="skeet-checkbox-label">
+                    <input type="checkbox" id="check-steam-leet" onchange="toggleLeetSlider('steam-leet-slider-wrap', this.checked)" />
+                    <span>Random leet language</span>
+                  </label>
+                </div>
+
+                <!-- Leet Amount Slider for Steam (1 to 5) -->
+                <div id="steam-leet-slider-wrap" class="skeet-slider-container" style="display: none; margin-bottom: 9px; margin-top: 4px;">
+                  <div class="skeet-slider-header">
+                    <span class="control-label">Leet amount</span>
+                  </div>
+                  <div class="skeet-slider-row">
+                    <button class="skeet-stepper-btn" onclick="stepSlider('setting-steam-leet-amount', -1)">-</button>
+                    <div class="skeet-slider-track-wrap">
+                      <input type="range" class="skeet-slider" id="setting-steam-leet-amount" min="1" max="5" step="1" value="2" oninput="updateSliderTrack(this, 'steam-leet-amount-val', '')" />
+                      <span class="skeet-slider-text-on-track" id="steam-leet-amount-val">2</span>
+                    </div>
+                    <button class="skeet-stepper-btn" onclick="stepSlider('setting-steam-leet-amount', 1)">+</button>
+                  </div>
                 </div>
 
                 <!-- Sliders for Steam -->
@@ -1324,6 +1376,10 @@
                   <div class="skeet-dropdown-menu">
                     <div class="skeet-dropdown-item active" data-val="3l_cvc" onclick="selectDropdown('dd-gen-mode', '3l_cvc', '3L CVC')">3L CVC</div>
                     <div class="skeet-dropdown-item" data-val="4l_cvcv" onclick="selectDropdown('dd-gen-mode', '4l_cvcv', '4L CVCV')">4L CVCV</div>
+                    <div class="skeet-dropdown-item" data-val="3_alnum" onclick="selectDropdown('dd-gen-mode', '3_alnum', '3-char letters &amp; numbers')">3-char letters &amp; numbers</div>
+                    <div class="skeet-dropdown-item" data-val="4_alnum" onclick="selectDropdown('dd-gen-mode', '4_alnum', '4-char letters &amp; numbers')">4-char letters &amp; numbers</div>
+                    <div class="skeet-dropdown-item" data-val="3_mixed" onclick="selectDropdown('dd-gen-mode', '3_mixed', '3-char mixed (A-Z + 0-9)')">3-char mixed (A-Z + 0-9)</div>
+                    <div class="skeet-dropdown-item" data-val="4_mixed" onclick="selectDropdown('dd-gen-mode', '4_mixed', '4-char mixed (A-Z + 0-9)')">4-char mixed (A-Z + 0-9)</div>
                     <div class="skeet-dropdown-item" data-val="compound" onclick="selectDropdown('dd-gen-mode', 'compound', 'Compound')">Compound</div>
                     <div class="skeet-dropdown-item" data-val="custom_pattern" onclick="selectDropdown('dd-gen-mode', 'custom_pattern', 'Custom pattern')">Custom pattern</div>
                   </div>
@@ -1849,6 +1905,16 @@
     let dbSortAsc = true;
     let dbSearchTimeout = null;
 
+    function toggleLeetSlider(containerId, isChecked) {
+      const el = document.getElementById(containerId);
+      if (el) {
+        el.style.display = isChecked ? 'flex' : 'none';
+        if (isChecked) {
+          initAllSliders();
+        }
+      }
+    }
+
     function openExternalUrl(url) {
       if (!url) return;
       if (window.pywebview && window.pywebview.api && window.pywebview.api.open_url) {
@@ -1901,8 +1967,10 @@
       logFeed(`Starting: ${source}`, 'dim');
       
       const forceRecheck = document.getElementById('check-force-recheck').checked;
+      const applyLeet = document.getElementById('check-leet') ? document.getElementById('check-leet').checked : false;
+      const leetAmount = document.getElementById('setting-leet-amount') ? (parseInt(document.getElementById('setting-leet-amount').value, 10) || 1) : 1;
       try {
-        const res = await window.pywebview.api.start_checker(source, customText, forceRecheck);
+        const res = await window.pywebview.api.start_checker(source, customText, forceRecheck, applyLeet, leetAmount);
         if (!res.success) {
           logFeed(`Error: ${res.error}`, 'red');
           resetButtons();
@@ -2154,6 +2222,8 @@
       const forceRecheck = document.getElementById('check-steam-force-recheck').checked;
       const threads = parseInt(document.getElementById('steam-threads').value, 10) || 3;
       const delay = parseFloat(document.getElementById('steam-delay').value) || 0.35;
+      const applyLeet = document.getElementById('check-steam-leet') ? document.getElementById('check-steam-leet').checked : false;
+      const leetAmount = document.getElementById('setting-steam-leet-amount') ? (parseInt(document.getElementById('setting-steam-leet-amount').value, 10) || 1) : 1;
 
       document.getElementById('btn-steam-start').disabled = true;
       document.getElementById('btn-steam-pause').disabled = false;
@@ -2163,7 +2233,7 @@
 
       logSteamFeed(`Starting check (${source})...`, 'cyan');
 
-      const res = await window.pywebview.api.start_steam_checker(source, customText, forceRecheck, threads, delay);
+      const res = await window.pywebview.api.start_steam_checker(source, customText, forceRecheck, threads, delay, applyLeet, leetAmount);
       if (!res.success) {
         logSteamFeed(`Error: ${res.error}`, 'red');
         resetSteamButtons();
@@ -2749,14 +2819,16 @@
     });
 
     function initAllSliders() {
-      ['setting-threads', 'setting-delay', 'gen-count', 'steam-threads', 'steam-delay'].forEach(id => {
+      ['setting-threads', 'setting-delay', 'gen-count', 'steam-threads', 'steam-delay', 'setting-leet-amount', 'setting-steam-leet-amount'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           const u = (id === 'setting-delay' || id === 'steam-delay') ? 's' : '';
           const vid = (id === 'setting-threads') ? 'threads-val' :
                       (id === 'setting-delay') ? 'delay-val' :
                       (id === 'steam-threads') ? 'steam-threads-val' :
-                      (id === 'steam-delay') ? 'steam-delay-val' : 'gen-count-val';
+                      (id === 'steam-delay') ? 'steam-delay-val' :
+                      (id === 'setting-leet-amount') ? 'leet-amount-val' :
+                      (id === 'setting-steam-leet-amount') ? 'steam-leet-amount-val' : 'gen-count-val';
           updateSliderTrack(el, vid, u);
         }
       });

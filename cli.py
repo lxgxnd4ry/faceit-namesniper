@@ -40,7 +40,9 @@ def print_banner():
 def run_cli():
     parser = argparse.ArgumentParser(description="Namesniper - High-Speed Faceit Username Checker")
     parser.add_argument("-w", "--wordlist", type=str, help="Wordlist name or file path ('og', '3l', '4l', 'dict', or path to .txt)")
-    parser.add_argument("-g", "--generate", type=str, choices=["3l", "4l", "compound"], help="Algorithmically generate names")
+    parser.add_argument("-g", "--generate", type=str, choices=["3l", "4l", "3_alnum", "4_alnum", "3_mixed", "4_mixed", "compound"], help="Algorithmically generate names")
+    parser.add_argument("--leet", action="store_true", help="Randomly insert leet language into names")
+    parser.add_argument("--leet-amount", type=int, default=1, choices=range(1, 6), help="Leet substitutions amount (1-5, default: 1)")
     parser.add_argument("-k", "--key", type=str, help="Faceit API key (Bearer token)")
     parser.add_argument("-t", "--threads", type=int, default=3, help="Concurrent checking threads (default: 3)")
     parser.add_argument("-d", "--delay", type=float, default=0.35, help="Delay between checks in seconds (default: 0.35)")
@@ -113,6 +115,14 @@ def run_cli():
             names = NameGenerator.generate_3l_pronounceable(limit=1000)
         elif args.generate == "4l":
             names = NameGenerator.generate_4l_pronounceable(limit=1500)
+        elif args.generate == "3_alnum":
+            names = NameGenerator.generate_3_alnum(limit=1500)
+        elif args.generate == "4_alnum":
+            names = NameGenerator.generate_4_alnum(limit=2000)
+        elif args.generate == "3_mixed":
+            names = NameGenerator.generate_3_mixed(limit=1500)
+        elif args.generate == "4_mixed":
+            names = NameGenerator.generate_4_mixed(limit=2000)
         elif args.generate == "compound":
             names = NameGenerator.generate_compound_words(count=800)
     elif args.wordlist:
@@ -138,10 +148,12 @@ def run_cli():
         print("  2) Short 3-Letter Words (1,050+)")
         print("  3) Short 4-Letter Words (1,400+)")
         print("  4) 1-Word Clean Dictionary (2,200+)")
-        print("  5) Pronounceable 3L Generator (CVC)")
-        print("  6) Pronounceable 4L Generator (CVCV)")
-        print("  7) Custom File Path")
-        choice = input(f"{Fore.YELLOW}Select option [1-7] (default: 1): {Style.RESET_ALL}").strip() or "1"
+        print("  5) 3-Char Letters & Numbers (1,500)")
+        print("  6) 4-Char Letters & Numbers (2,000)")
+        print("  7) Pronounceable 3L Generator (CVC)")
+        print("  8) Pronounceable 4L Generator (CVCV)")
+        print("  9) Custom File Path")
+        choice = input(f"{Fore.YELLOW}Select option [1-9] (default: 1): {Style.RESET_ALL}").strip() or "1"
 
         if choice == "1":
             with open(get_wordlist_path("og_cool_words.txt"), "r", encoding="utf-8") as f:
@@ -156,16 +168,25 @@ def run_cli():
             with open(get_wordlist_path("dictionary_words.txt"), "r", encoding="utf-8") as f:
                 names = [l.strip() for l in f if l.strip()]
         elif choice == "5":
-            names = NameGenerator.generate_3l_pronounceable(limit=1000)
+            names = NameGenerator.generate_3_alnum(limit=1500)
         elif choice == "6":
-            names = NameGenerator.generate_4l_pronounceable(limit=1500)
+            names = NameGenerator.generate_4_alnum(limit=2000)
         elif choice == "7":
+            names = NameGenerator.generate_3l_pronounceable(limit=1000)
+        elif choice == "8":
+            names = NameGenerator.generate_4l_pronounceable(limit=1500)
+        elif choice == "9":
             custom_path = input(f"{Fore.WHITE}Enter file path: {Style.RESET_ALL}").strip()
             with open(custom_path, "r", encoding="utf-8") as f:
                 names = [l.strip() for l in f if l.strip()]
         else:
             with open(get_wordlist_path("og_cool_words.txt"), "r", encoding="utf-8") as f:
                 names = [l.strip() for l in f if l.strip()]
+
+    if args.leet:
+        leet_amt = max(1, min(args.leet_amount, 5))
+        print(f"{Fore.CYAN}[*] Applying leetspeak substitutions (amount: {leet_amt})...{Style.RESET_ALL}")
+        names = NameGenerator.apply_leet_to_list(names, amount=leet_amt)
 
     # Result handler
     def on_result(result):

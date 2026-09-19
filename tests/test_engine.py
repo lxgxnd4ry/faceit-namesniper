@@ -74,6 +74,55 @@ class TestGenerator(unittest.TestCase):
             self.assertTrue(3 <= len(w) <= 12)
             self.assertTrue(FaceitAPIClient.validate_nickname(w))
 
+    def test_3_alnum(self):
+        words = NameGenerator.generate_3_alnum(limit=50)
+        self.assertEqual(len(words), 50)
+        for w in words:
+            self.assertEqual(len(w), 3)
+            self.assertTrue(FaceitAPIClient.validate_nickname(w))
+
+    def test_4_alnum(self):
+        words = NameGenerator.generate_4_alnum(limit=50)
+        self.assertEqual(len(words), 50)
+        for w in words:
+            self.assertEqual(len(w), 4)
+            self.assertTrue(FaceitAPIClient.validate_nickname(w))
+
+    def test_3_mixed(self):
+        words = NameGenerator.generate_3_mixed(limit=50)
+        self.assertEqual(len(words), 50)
+        for w in words:
+            self.assertEqual(len(w), 3)
+            self.assertTrue(any(c.isalpha() for c in w))
+            self.assertTrue(any(c.isdigit() for c in w))
+            self.assertTrue(FaceitAPIClient.validate_nickname(w))
+
+    def test_4_mixed(self):
+        words = NameGenerator.generate_4_mixed(limit=50)
+        self.assertEqual(len(words), 50)
+        for w in words:
+            self.assertEqual(len(w), 4)
+            self.assertTrue(any(c.isalpha() for c in w))
+            self.assertTrue(any(c.isdigit() for c in w))
+            self.assertTrue(FaceitAPIClient.validate_nickname(w))
+
+    def test_apply_leet(self):
+        word = "beast"
+        for amt in range(1, 6):
+            leeted = NameGenerator.apply_leet(word, amount=amt)
+            self.assertEqual(len(leeted), len(word))
+            self.assertTrue(FaceitAPIClient.validate_nickname(leeted))
+            digits_count = sum(1 for c in leeted if c.isdigit())
+            self.assertTrue(1 <= digits_count <= amt)
+
+    def test_apply_leet_to_list(self):
+        input_list = ["legend", "sniper", "shadow", "frost", "beast"]
+        leeted_list = NameGenerator.apply_leet_to_list(input_list, amount=2)
+        self.assertEqual(len(leeted_list), len(input_list))
+        for item in leeted_list:
+            self.assertTrue(FaceitAPIClient.validate_nickname(item))
+            self.assertTrue(any(c.isdigit() for c in item))
+
 class TestDatabase(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
