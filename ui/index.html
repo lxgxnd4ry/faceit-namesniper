@@ -498,6 +498,13 @@
       transform: translateY(1px);
     }
 
+    .skeet-btn.active {
+      background: linear-gradient(180deg, #181818 0%, #111111 100%);
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: inset 0 1px 2px #000000;
+    }
+
     .skeet-btn:disabled {
       opacity: 0.35;
       cursor: not-allowed;
@@ -799,6 +806,12 @@
       background-color: rgba(100, 100, 100, 0.1);
       color: #777777;
       border: 1px solid #303030;
+    }
+
+    .tag-invalid {
+      background-color: rgba(255, 23, 68, 0.1);
+      color: var(--error);
+      border: 1px solid rgba(255, 23, 68, 0.25);
     }
 
     /* Activity Feed */
@@ -1341,17 +1354,23 @@
           <div class="skeet-groupbox" style="flex: 1;">
             <span class="skeet-groupbox-title">Database</span>
 
-            <div class="control-row" style="margin-bottom: 9px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="control-label">Status:</span>
+            <div class="control-row" style="margin-bottom: 9px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="control-label">Source:</span>
+                <div style="display: inline-flex;">
+                  <button class="skeet-btn active" id="btn-db-target-faceit" onclick="setDbTarget('faceit')" style="border-top-right-radius: 0; border-bottom-right-radius: 0; height: 23px; padding: 0 10px;">Faceit</button>
+                  <button class="skeet-btn" id="btn-db-target-steam" onclick="setDbTarget('steam')" style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: none; height: 23px; padding: 0 10px;">Steam</button>
+                </div>
+
+                <span class="control-label" style="margin-left: 6px;">Status:</span>
                 
                 <!-- Custom Dropdown: DB Filter -->
-                <div class="skeet-dropdown" id="dd-db-filter" style="width: 140px;">
+                <div class="skeet-dropdown" id="dd-db-filter" style="width: 120px;">
                   <div class="skeet-dropdown-header" onclick="toggleDropdown('dd-db-filter')">
                     <span id="dd-db-filter-label">Available</span>
                     <span class="skeet-dropdown-arrow">&#9662;</span>
                   </div>
-                  <div class="skeet-dropdown-menu">
+                  <div class="skeet-dropdown-menu" id="dd-db-filter-menu">
                     <div class="skeet-dropdown-item" data-val="ALL" onclick="selectDropdown('dd-db-filter', 'ALL', 'All')">All</div>
                     <div class="skeet-dropdown-item active" data-val="AVAILABLE" onclick="selectDropdown('dd-db-filter', 'AVAILABLE', 'Available')">Available</div>
                     <div class="skeet-dropdown-item" data-val="CLAIMABLE_IDLE" onclick="selectDropdown('dd-db-filter', 'CLAIMABLE_IDLE', 'Claimable')">Claimable</div>
@@ -1359,9 +1378,13 @@
                   </div>
                 </div>
                 <input type="hidden" id="db-filter-select" value="AVAILABLE" />
+
+                <!-- Search box -->
+                <input type="text" class="skeet-input" id="db-search-input" placeholder="Search..." style="width: 130px; height: 23px; padding: 0 6px; font-size: 11px; margin-left: 6px;" oninput="onDbSearchInput()" />
               </div>
 
-              <div style="display: flex; gap: 6px;">
+              <div style="display: flex; gap: 6px; align-items: center; margin-left: auto;">
+                <span id="db-record-count" style="font-size: 11px; color: var(--text-dim); margin-right: 4px;">0 records</span>
                 <button class="skeet-btn" onclick="refreshDatabaseView()">Refresh</button>
                 <button class="skeet-btn danger" onclick="clearDatabase()">Wipe DB</button>
               </div>
@@ -1369,16 +1392,16 @@
 
             <div class="skeet-inset-box">
               <table>
-                <thead>
+                <thead id="db-table-head">
                   <tr>
-                    <th class="sortable" id="th-db-name" onclick="handleDbSort('name')">Nickname</th>
+                    <th class="sortable active" id="th-db-name" onclick="handleDbSort('name')">Nickname</th>
                     <th class="sortable" id="th-db-status" onclick="handleDbSort('status')">Status</th>
                     <th class="sortable" id="th-db-length" onclick="handleDbSort('length')">Length</th>
                     <th class="sortable" id="th-db-created" onclick="handleDbSort('created')">Created</th>
                     <th class="sortable" id="th-db-region" onclick="handleDbSort('region')">Region</th>
                     <th class="sortable" id="th-db-elo" onclick="handleDbSort('elo')">ELO</th>
                     <th class="sortable" id="th-db-games" onclick="handleDbSort('games')">Games</th>
-                    <th>Checked</th>
+                    <th class="sortable" id="th-db-checked" onclick="handleDbSort('checked')">Checked</th>
                     <th style="width: 50px;">Action</th>
                   </tr>
                 </thead>
@@ -1798,8 +1821,10 @@
     let availSortCol = null;
     let availSortAsc = true;
     let currentDbRecords = [];
+    let currentDbTarget = 'faceit';
     let dbSortCol = null;
     let dbSortAsc = true;
+    let dbSearchTimeout = null;
 
     function openFaceitProfile(nick) {
       if (!nick) return;
@@ -2332,6 +2357,98 @@
     }
 
     // Database
+    function setDbTarget(target) {
+      if (currentDbTarget === target) return;
+      currentDbTarget = target;
+
+      const btnFaceit = document.getElementById('btn-db-target-faceit');
+      const btnSteam = document.getElementById('btn-db-target-steam');
+      if (btnFaceit && btnSteam) {
+        btnFaceit.classList.toggle('active', target === 'faceit');
+        btnSteam.classList.toggle('active', target === 'steam');
+      }
+
+      updateDbFilterDropdown(target);
+
+      const searchInput = document.getElementById('db-search-input');
+      if (searchInput) searchInput.value = '';
+
+      dbSortCol = target === 'steam' ? 'vanity' : 'name';
+      dbSortAsc = true;
+
+      refreshDatabaseView();
+    }
+
+    function updateDbFilterDropdown(target) {
+      const menu = document.getElementById('dd-db-filter-menu');
+      if (!menu) return;
+
+      const currentVal = document.getElementById('db-filter-select').value;
+      if (target === 'steam') {
+        const activeVal = (currentVal === 'CLAIMABLE_IDLE') ? 'AVAILABLE' : currentVal;
+        document.getElementById('db-filter-select').value = activeVal;
+        const activeLabel = activeVal === 'ALL' ? 'All' : (activeVal === 'AVAILABLE' ? 'Available' : (activeVal === 'TAKEN' ? 'Taken' : 'Invalid'));
+        document.getElementById('dd-db-filter-label').innerText = activeLabel;
+
+        menu.innerHTML = `
+          <div class="skeet-dropdown-item ${activeVal === 'ALL' ? 'active' : ''}" data-val="ALL" onclick="selectDropdown('dd-db-filter', 'ALL', 'All')">All</div>
+          <div class="skeet-dropdown-item ${activeVal === 'AVAILABLE' ? 'active' : ''}" data-val="AVAILABLE" onclick="selectDropdown('dd-db-filter', 'AVAILABLE', 'Available')">Available</div>
+          <div class="skeet-dropdown-item ${activeVal === 'TAKEN' ? 'active' : ''}" data-val="TAKEN" onclick="selectDropdown('dd-db-filter', 'TAKEN', 'Taken')">Taken</div>
+          <div class="skeet-dropdown-item ${activeVal === 'INVALID' ? 'active' : ''}" data-val="INVALID" onclick="selectDropdown('dd-db-filter', 'INVALID', 'Invalid')">Invalid</div>
+        `;
+      } else {
+        const activeVal = (currentVal === 'INVALID') ? 'AVAILABLE' : currentVal;
+        document.getElementById('db-filter-select').value = activeVal;
+        const activeLabel = activeVal === 'ALL' ? 'All' : (activeVal === 'AVAILABLE' ? 'Available' : (activeVal === 'CLAIMABLE_IDLE' ? 'Claimable' : 'Taken'));
+        document.getElementById('dd-db-filter-label').innerText = activeLabel;
+
+        menu.innerHTML = `
+          <div class="skeet-dropdown-item ${activeVal === 'ALL' ? 'active' : ''}" data-val="ALL" onclick="selectDropdown('dd-db-filter', 'ALL', 'All')">All</div>
+          <div class="skeet-dropdown-item ${activeVal === 'AVAILABLE' ? 'active' : ''}" data-val="AVAILABLE" onclick="selectDropdown('dd-db-filter', 'AVAILABLE', 'Available')">Available</div>
+          <div class="skeet-dropdown-item ${activeVal === 'CLAIMABLE_IDLE' ? 'active' : ''}" data-val="CLAIMABLE_IDLE" onclick="selectDropdown('dd-db-filter', 'CLAIMABLE_IDLE', 'Claimable')">Claimable</div>
+          <div class="skeet-dropdown-item ${activeVal === 'TAKEN' ? 'active' : ''}" data-val="TAKEN" onclick="selectDropdown('dd-db-filter', 'TAKEN', 'Taken')">Taken</div>
+        `;
+      }
+    }
+
+    function onDbSearchInput() {
+      clearTimeout(dbSearchTimeout);
+      dbSearchTimeout = setTimeout(refreshDatabaseView, 200);
+    }
+
+    function renderDbTableHead() {
+      const thead = document.getElementById('db-table-head');
+      if (!thead) return;
+
+      if (currentDbTarget === 'steam') {
+        thead.innerHTML = `
+          <tr>
+            <th class="sortable ${dbSortCol === 'vanity' ? 'active' : ''}" id="th-db-vanity" onclick="handleDbSort('vanity')">Vanity URL</th>
+            <th class="sortable ${dbSortCol === 'status' ? 'active' : ''}" id="th-db-status" onclick="handleDbSort('status')">Status</th>
+            <th class="sortable ${dbSortCol === 'length' ? 'active' : ''}" id="th-db-length" onclick="handleDbSort('length')">Length</th>
+            <th class="sortable ${dbSortCol === 'steamid' ? 'active' : ''}" id="th-db-steamid" onclick="handleDbSort('steamid')">SteamID64</th>
+            <th>Details</th>
+            <th class="sortable ${dbSortCol === 'checked' ? 'active' : ''}" id="th-db-checked" onclick="handleDbSort('checked')">Checked</th>
+            <th style="width: 50px;">Action</th>
+          </tr>
+        `;
+      } else {
+        thead.innerHTML = `
+          <tr>
+            <th class="sortable ${dbSortCol === 'name' ? 'active' : ''}" id="th-db-name" onclick="handleDbSort('name')">Nickname</th>
+            <th class="sortable ${dbSortCol === 'status' ? 'active' : ''}" id="th-db-status" onclick="handleDbSort('status')">Status</th>
+            <th class="sortable ${dbSortCol === 'length' ? 'active' : ''}" id="th-db-length" onclick="handleDbSort('length')">Length</th>
+            <th class="sortable ${dbSortCol === 'created' ? 'active' : ''}" id="th-db-created" onclick="handleDbSort('created')">Created</th>
+            <th class="sortable ${dbSortCol === 'region' ? 'active' : ''}" id="th-db-region" onclick="handleDbSort('region')">Region</th>
+            <th class="sortable ${dbSortCol === 'elo' ? 'active' : ''}" id="th-db-elo" onclick="handleDbSort('elo')">ELO</th>
+            <th class="sortable ${dbSortCol === 'games' ? 'active' : ''}" id="th-db-games" onclick="handleDbSort('games')">Games</th>
+            <th class="sortable ${dbSortCol === 'checked' ? 'active' : ''}" id="th-db-checked" onclick="handleDbSort('checked')">Checked</th>
+            <th style="width: 50px;">Action</th>
+          </tr>
+        `;
+      }
+    }
+
     function handleDbSort(col) {
       if (dbSortCol === col) {
         dbSortAsc = !dbSortAsc;
@@ -2340,18 +2457,7 @@
         dbSortAsc = true;
       }
 
-      const cols = ['name', 'status', 'length', 'created', 'region', 'elo', 'games'];
-      cols.forEach(c => {
-        const th = document.getElementById(`th-db-${c}`);
-        if (th) {
-          if (c === col) {
-            th.classList.add('active');
-          } else {
-            th.classList.remove('active');
-          }
-        }
-      });
-
+      renderDbTableHead();
       sortDbRecords();
       renderDbTable();
     }
@@ -2360,43 +2466,48 @@
       if (!dbSortCol || !currentDbRecords) return;
 
       currentDbRecords.sort((a, b) => {
-        let valA, valB;
-        if (dbSortCol === 'name') {
-          valA = (a.nickname || '').toLowerCase();
-          valB = (b.nickname || '').toLowerCase();
-          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        } else if (dbSortCol === 'status') {
-          valA = (a.status || '').toLowerCase();
-          valB = (b.status || '').toLowerCase();
-          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        } else if (dbSortCol === 'length') {
-          valA = Number(a.length) || (a.nickname ? a.nickname.length : 0);
-          valB = Number(b.length) || (b.nickname ? b.nickname.length : 0);
-          return dbSortAsc ? (valA - valB) : (valB - valA);
-        } else if (dbSortCol === 'created') {
-          valA = a.account_created_at || '';
-          valB = b.account_created_at || '';
-          if (!valA && !valB) return 0;
-          if (!valA) return 1;
-          if (!valB) return -1;
-          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        } else if (dbSortCol === 'region') {
-          valA = (a.country || '').toLowerCase();
-          valB = (b.country || '').toLowerCase();
-          if (!valA && !valB) return 0;
-          if (!valA) return 1;
-          if (!valB) return -1;
-          return dbSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        } else if (dbSortCol === 'elo') {
-          valA = Number(a.faceit_elo) || 0;
-          valB = Number(b.faceit_elo) || 0;
-          return dbSortAsc ? (valA - valB) : (valB - valA);
-        } else if (dbSortCol === 'games') {
-          valA = Number(a.games_count) || 0;
-          valB = Number(b.games_count) || 0;
-          return dbSortAsc ? (valA - valB) : (valB - valA);
+        let res = 0;
+        if (currentDbTarget === 'steam') {
+          if (dbSortCol === 'vanity') {
+            res = (a.vanity || '').localeCompare(b.vanity || '');
+          } else if (dbSortCol === 'status') {
+            res = (a.status || '').localeCompare(b.status || '');
+          } else if (dbSortCol === 'length') {
+            const lA = Number(a.length) || (a.vanity ? a.vanity.length : 0);
+            const lB = Number(b.length) || (b.vanity ? b.vanity.length : 0);
+            res = lA - lB;
+          } else if (dbSortCol === 'steamid') {
+            res = (a.steamid64 || '').localeCompare(b.steamid64 || '');
+          } else if (dbSortCol === 'checked') {
+            res = (a.checked_at || '').localeCompare(b.checked_at || '');
+          }
+        } else {
+          if (dbSortCol === 'name') {
+            res = (a.nickname || '').localeCompare(b.nickname || '');
+          } else if (dbSortCol === 'status') {
+            res = (a.status || '').localeCompare(b.status || '');
+          } else if (dbSortCol === 'length') {
+            const lA = Number(a.length) || (a.nickname ? a.nickname.length : 0);
+            const lB = Number(b.length) || (b.nickname ? b.nickname.length : 0);
+            res = lA - lB;
+          } else if (dbSortCol === 'created') {
+            const cA = a.account_created_at || '';
+            const cB = b.account_created_at || '';
+            if (!cA && !cB) res = 0;
+            else if (!cA) res = 1;
+            else if (!cB) res = -1;
+            else res = cA.localeCompare(cB);
+          } else if (dbSortCol === 'region') {
+            res = (a.country || '').localeCompare(b.country || '');
+          } else if (dbSortCol === 'elo') {
+            res = (Number(a.faceit_elo) || 0) - (Number(b.faceit_elo) || 0);
+          } else if (dbSortCol === 'games') {
+            res = (Number(a.games_count) || 0) - (Number(b.games_count) || 0);
+          } else if (dbSortCol === 'checked') {
+            res = (a.checked_at || '').localeCompare(b.checked_at || '');
+          }
         }
-        return 0;
+        return dbSortAsc ? res : -res;
       });
     }
 
@@ -2404,11 +2515,18 @@
       const tbody = document.getElementById('db-table-body');
       if (!tbody) return;
 
+      const countEl = document.getElementById('db-record-count');
+      if (countEl) {
+        countEl.innerText = `${currentDbRecords ? currentDbRecords.length : 0} records`;
+      }
+
+      const colSpan = currentDbTarget === 'steam' ? 7 : 9;
+
       if (!currentDbRecords || currentDbRecords.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="9" style="text-align: center; color: var(--text-dim); padding: 30px;">
-              No records.
+            <td colspan="${colSpan}" style="text-align: center; color: var(--text-dim); padding: 30px;">
+              No records found.
             </td>
           </tr>
         `;
@@ -2416,43 +2534,86 @@
       }
 
       let html = '';
-      currentDbRecords.forEach(row => {
-        const isAvail = row.status === 'AVAILABLE';
-        const isClaim = row.status === 'CLAIMABLE_IDLE';
-        const tagClass = isAvail ? 'tag-available' : (isClaim ? 'tag-claimable' : 'tag-taken');
-        const linkClass = isAvail ? '' : (isClaim ? 'claimable' : 'taken');
-        const statusLabel = isAvail ? 'Available' : (isClaim ? 'Claimable' : 'Taken');
-        const createdDisplay = escapeHtml(row.account_created_at) || '-';
-        const safeNick = escapeHtml(row.nickname);
-        const jsNick = escapeJsString(row.nickname);
+      if (currentDbTarget === 'steam') {
+        currentDbRecords.forEach(row => {
+          const isAvail = row.status === 'AVAILABLE';
+          const isTaken = row.status === 'TAKEN';
+          const tagClass = isAvail ? 'tag-available' : (isTaken ? 'tag-taken' : 'tag-invalid');
+          const linkClass = isAvail ? '' : 'taken';
+          const statusLabel = isAvail ? 'Available' : (isTaken ? 'Taken' : escapeHtml(row.status));
+          const safeVanity = escapeHtml(row.vanity);
+          const jsVanity = escapeJsString(row.vanity);
+          const steamid = escapeHtml(row.steamid64) || '-';
+          const details = escapeHtml(row.details) || '-';
+          const checkedDisplay = escapeHtml(row.checked_at) || '-';
 
-        html += `
-          <tr>
-            <td>
-              <span class="nickname-link ${linkClass}" onclick="openFaceitProfile('${jsNick}')" title="${safeNick}">
-                ${safeNick} <span class="ext-icon">&#8599;</span>
-              </span>
-            </td>
-            <td><span class="tag ${tagClass}">${statusLabel}</span></td>
-            <td>${row.length}</td>
-            <td style="font-size: 11px; color: #00d2ff;">${createdDisplay}</td>
-            <td>${escapeHtml(row.country) || '-'}</td>
-            <td>${row.faceit_elo !== null && row.faceit_elo !== undefined ? row.faceit_elo : '-'}</td>
-            <td>${row.games_count !== null && row.games_count !== undefined ? row.games_count : 0}</td>
-            <td style="color: var(--text-dim); font-size: 10px;">${escapeHtml(row.checked_at) || '-'}</td>
-            <td>
-              <button class="skeet-btn" style="padding: 1px 6px; font-size: 10px; height: 19px;" onclick="copyNickname('${jsNick}')">Copy</button>
-            </td>
-          </tr>
-        `;
-      });
+          html += `
+            <tr>
+              <td>
+                <span class="nickname-link ${linkClass}" onclick="openSteamProfile('${jsVanity}')" title="https://steamcommunity.com/id/${safeVanity}/">
+                  ${safeVanity} <span class="ext-icon">&#8599;</span>
+                </span>
+              </td>
+              <td><span class="tag ${tagClass}">${statusLabel}</span></td>
+              <td>${row.length}</td>
+              <td style="font-family: monospace; font-size: 11px; color: var(--text-dim);">${steamid}</td>
+              <td style="color: var(--text-dim); font-size: 10px;">${details}</td>
+              <td style="color: var(--text-dim); font-size: 10px;">${checkedDisplay}</td>
+              <td>
+                <button class="skeet-btn" style="padding: 1px 6px; font-size: 10px; height: 19px;" onclick="copyNickname('${jsVanity}')">Copy</button>
+              </td>
+            </tr>
+          `;
+        });
+      } else {
+        currentDbRecords.forEach(row => {
+          const isAvail = row.status === 'AVAILABLE';
+          const isClaim = row.status === 'CLAIMABLE_IDLE';
+          const tagClass = isAvail ? 'tag-available' : (isClaim ? 'tag-claimable' : 'tag-taken');
+          const linkClass = isAvail ? '' : (isClaim ? 'claimable' : 'taken');
+          const statusLabel = isAvail ? 'Available' : (isClaim ? 'Claimable' : 'Taken');
+          const createdDisplay = escapeHtml(row.account_created_at) || '-';
+          const safeNick = escapeHtml(row.nickname);
+          const jsNick = escapeJsString(row.nickname);
+          const checkedDisplay = escapeHtml(row.checked_at) || '-';
+
+          html += `
+            <tr>
+              <td>
+                <span class="nickname-link ${linkClass}" onclick="openFaceitProfile('${jsNick}')" title="${safeNick}">
+                  ${safeNick} <span class="ext-icon">&#8599;</span>
+                </span>
+              </td>
+              <td><span class="tag ${tagClass}">${statusLabel}</span></td>
+              <td>${row.length}</td>
+              <td style="font-size: 11px; color: #00d2ff;">${createdDisplay}</td>
+              <td>${escapeHtml(row.country) || '-'}</td>
+              <td>${row.faceit_elo !== null && row.faceit_elo !== undefined ? row.faceit_elo : '-'}</td>
+              <td>${row.games_count !== null && row.games_count !== undefined ? row.games_count : 0}</td>
+              <td style="color: var(--text-dim); font-size: 10px;">${checkedDisplay}</td>
+              <td>
+                <button class="skeet-btn" style="padding: 1px 6px; font-size: 10px; height: 19px;" onclick="copyNickname('${jsNick}')">Copy</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
       tbody.innerHTML = html;
     }
 
     async function refreshDatabaseView() {
+      renderDbTableHead();
       const filter = document.getElementById('db-filter-select').value;
-      const records = await window.pywebview.api.get_db_records(filter);
-      currentDbRecords = records || [];
+      const search = (document.getElementById('db-search-input') ? document.getElementById('db-search-input').value.trim() : '');
+
+      if (currentDbTarget === 'steam') {
+        const records = await window.pywebview.api.get_steam_db_records(filter, search);
+        currentDbRecords = records || [];
+      } else {
+        const records = await window.pywebview.api.get_db_records(filter, search);
+        currentDbRecords = records || [];
+      }
+
       if (dbSortCol) {
         sortDbRecords();
       }
@@ -2460,10 +2621,16 @@
     }
 
     async function clearDatabase() {
-      if (confirm('Clear database cache?')) {
-        await window.pywebview.api.clear_db();
+      const dbLabel = currentDbTarget === 'steam' ? 'Steam' : 'Faceit';
+      if (confirm(`Clear ${dbLabel} database cache?`)) {
+        if (currentDbTarget === 'steam') {
+          await window.pywebview.api.clear_steam_db();
+          logSteamFeed('Steam database cleared.', 'dim');
+        } else {
+          await window.pywebview.api.clear_db();
+          logFeed('Faceit database cleared.', 'dim');
+        }
         refreshDatabaseView();
-        logFeed('Database cleared.', 'dim');
       }
     }
 

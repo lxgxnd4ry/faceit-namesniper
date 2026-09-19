@@ -110,23 +110,29 @@ class Database:
             ))
             conn.commit()
 
-    def get_results(self, status_filter: Optional[str] = None, limit: int = 500) -> List[Dict[str, Any]]:
-        """Retrieve recent results filtered by status if provided."""
+    def get_results(
+        self,
+        status_filter: Optional[str] = None,
+        limit: int = 500,
+        search_query: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve recent results filtered by status and optional search query if provided."""
+        query = "SELECT * FROM checked_names WHERE 1=1"
+        params = []
+
+        if status_filter and status_filter != "ALL":
+            query += " AND status = ?"
+            params.append(status_filter)
+
+        if search_query:
+            query += " AND nickname LIKE ?"
+            params.append(f"%{search_query}%")
+
+        query += " ORDER BY checked_at DESC LIMIT ?"
+        params.append(limit)
+
         with self._connection() as conn:
-            if status_filter and status_filter != "ALL":
-                cursor = conn.execute("""
-                    SELECT * FROM checked_names 
-                    WHERE status = ? 
-                    ORDER BY checked_at DESC 
-                    LIMIT ?
-                """, (status_filter, limit))
-            else:
-                cursor = conn.execute("""
-                    SELECT * FROM checked_names 
-                    ORDER BY checked_at DESC 
-                    LIMIT ?
-                """, (limit,))
-            
+            cursor = conn.execute(query, tuple(params))
             return [dict(row) for row in cursor.fetchall()]
 
     def get_stats(self) -> Dict[str, int]:

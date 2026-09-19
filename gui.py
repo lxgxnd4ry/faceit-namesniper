@@ -134,9 +134,13 @@ class NamesniperAPI:
 
         return {"words": words}
 
-    def get_db_records(self, filter_status: str = "ALL") -> List[Dict[str, Any]]:
+    def get_db_records(self, filter_status: str = "ALL", search: str = "") -> List[Dict[str, Any]]:
         """Fetch results stored in SQLite database."""
-        return self._database.get_results(status_filter=filter_status, limit=300)
+        return self._database.get_results(
+            status_filter=filter_status if filter_status != "ALL" else None,
+            limit=500,
+            search_query=search.strip() if search.strip() else None
+        )
 
     def clear_db(self) -> Dict[str, Any]:
         """Clear database cache."""

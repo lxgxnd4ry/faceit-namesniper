@@ -106,6 +106,15 @@ class TestSteamDatabase(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["vanity"], "phantom")
 
+        # Test search query
+        self.db.record_steam_result(vanity="phantasm", status="TAKEN", length=8)
+        search_res = self.db.get_all_steam_records(search_query="phant")
+        self.assertEqual(len(search_res), 2)
+
+        search_avail = self.db.get_all_steam_records(filter_status="AVAILABLE", search_query="phant")
+        self.assertEqual(len(search_avail), 1)
+        self.assertEqual(search_avail[0]["vanity"], "phantom")
+
         self.db.clear_steam_records()
         self.assertEqual(len(self.db.get_all_steam_records()), 0)
 

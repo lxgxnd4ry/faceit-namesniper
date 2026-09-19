@@ -103,6 +103,21 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(stats["total"], 1)
         self.assertEqual(stats["available"], 1)
 
+    def test_search_results(self):
+        self.db.record_result(nickname="alpha", status="AVAILABLE", length=5)
+        self.db.record_result(nickname="beta", status="AVAILABLE", length=4)
+        self.db.record_result(nickname="alphabet", status="TAKEN", length=8)
+
+        res = self.db.get_results(search_query="alph")
+        self.assertEqual(len(res), 2)
+        nicknames = {r["nickname"] for r in res}
+        self.assertIn("alpha", nicknames)
+        self.assertIn("alphabet", nicknames)
+
+        res_filtered = self.db.get_results(status_filter="AVAILABLE", search_query="alph")
+        self.assertEqual(len(res_filtered), 1)
+        self.assertEqual(res_filtered[0]["nickname"], "alpha")
+
 class TestCheckerEngine(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
